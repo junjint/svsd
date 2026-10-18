@@ -1,6 +1,6 @@
-import { Text, View, StyleSheet, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, type ImageStyle, type ViewStyle } from 'react-native';
 import {
-  STICKERS,
+  STICKER_IMAGES,
   STICKER_SIZE,
   type StickerId,
   type StickerSize,
@@ -9,35 +9,24 @@ import {
 type Props = {
   id: StickerId;
   size?: StickerSize;
-  style?: ViewStyle;
-  /** Slight rotation for that “sticker tossed on the page” feel */
-  tilt?: number;
+  style?: ImageStyle | ViewStyle;
 };
 
-/**
- * Colorful picture mark. Use leading / trailing / between type only —
- * never as a tinted button or chrome fill.
- */
-export function Sticker({ id, size = 'md', style, tilt = 0 }: Props) {
+/** Transparent PNG sticker. Color only — never chrome. */
+export function Sticker({ id, size = 'md', style }: Props) {
   const px = STICKER_SIZE[size];
   return (
-    <View
-      style={[
-        styles.wrap,
-        { width: px + 4, height: px + 4, transform: [{ rotate: `${tilt}deg` }] },
-        style,
-      ]}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Text style={{ fontSize: px, lineHeight: px + 4 }}>{STICKERS[id]}</Text>
-    </View>
+    <Image
+      source={STICKER_IMAGES[id]}
+      style={[{ width: px, height: px }, styles.img, style as ImageStyle]}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  img: {
+    backgroundColor: 'transparent',
   },
 });

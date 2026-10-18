@@ -1,9 +1,8 @@
-export { color, space, radius, border, type, fonts, motion } from './tokens';
+export { color, bandeira, poster, space, fonts, type } from './tokens';
 export {
-  STICKERS,
+  STICKER_IMAGES,
   STICKER_SIZE,
   CATEGORY_STICKER,
-  DECOR_STICKERS,
   stickerForCategory,
   stickerForStatus,
   type StickerId,
@@ -11,33 +10,36 @@ export {
 } from './stickers';
 export { ThemeProvider, useThemeReady } from './ThemeProvider';
 export { Sticker } from './components/Sticker';
-export {
-  Display,
-  Title,
-  Subtitle,
-  Body,
-  Muted,
-  Label,
-  Mono,
-  Script,
-} from './components/Text';
-export {
-  EditorialHeadline,
-  Frame,
-  Capsule,
-  InlineStickerLine,
-  SectionHeader,
-  Crosshair,
-} from './components/Editorial';
+export { Display, Title, Body, Muted, Label, Floor, Hero } from './components/Text';
 export {
   Screen,
+  ScreenScroll,
   Button,
   Chip,
-  Row,
   ToggleRow,
   Field,
   Loading,
-  Section,
-  Divider,
   QuestRow,
+  Brand,
+  Panel,
+  Eyebrow,
 } from './components/Primitives';
+export {
+  Atmosphere,
+  Grain,
+  GrainField,
+  BrushStrike,
+  HeaderBand,
+  FloorMark,
+  CollageHero,
+  EdgeMeta,
+  BandeiraCell,
+  BandeiraStrip,
+  StickerStrip,
+  GeoField,
+  InkMass,
+  KnockoutBlock,
+  KnockoutMark,
+  Marginalia,
+  PosterScreen,
+} from './components/Poster';

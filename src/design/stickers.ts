@@ -1,13 +1,12 @@
+import type { ImageSourcePropType } from 'react-native';
 import type { InterestCategory, SidequestStatus } from '@/types';
 
 /**
- * Picture stickers are the ONLY source of color in the UI.
- * They read as small 3D / photoreal objects trailing or leading type —
- * never as flat brand glyphs or tinted chrome.
+ * Picture stickers — transparent PNGs. Only source of color in the UI.
+ * Keep the set small; use sparingly.
  */
 export type StickerId =
   | 'spark'
-  | 'compass'
   | 'coffee'
   | 'leaf'
   | 'book'
@@ -21,60 +20,32 @@ export type StickerId =
   | 'culture'
   | 'surprise'
   | 'map'
-  | 'journal'
-  | 'bell'
-  | 'pause'
-  | 'walk'
-  | 'arrive'
-  | 'key'
-  | 'pencil'
-  | 'seed'
-  | 'coral'
-  | 'orb'
-  | 'croissant'
-  | 'banana'
-  | 'candy';
+  | 'journal';
 
-export type StickerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type StickerSize = 'sm' | 'md' | 'lg';
 
 export const STICKER_SIZE: Record<StickerSize, number> = {
-  xs: 14,
-  sm: 20,
-  md: 28,
-  lg: 40,
-  xl: 56,
+  sm: 18,
+  md: 32,
+  lg: 72,
 };
 
-/** High-fidelity emoji stand in for 3D sticker assets (swap for PNGs later). */
-export const STICKERS: Record<StickerId, string> = {
-  spark: '✨',
-  compass: '🧭',
-  coffee: '☕️',
-  leaf: '🌿',
-  book: '📖',
-  music: '🎧',
-  art: '🎨',
-  thrift: '🧺',
-  food: '🍜',
-  landmark: '🏛️',
-  event: '🎪',
-  study: '📚',
-  culture: '🎭',
-  surprise: '🎲',
-  map: '🗺️',
-  journal: '📓',
-  bell: '🔔',
-  pause: '🫧',
-  walk: '👟',
-  arrive: '📍',
-  key: '⌨️',
-  pencil: '✏️',
-  seed: '🌱',
-  coral: '🪸',
-  orb: '🔮',
-  croissant: '🥐',
-  banana: '🍌',
-  candy: '🍬',
+export const STICKER_IMAGES: Record<StickerId, ImageSourcePropType> = {
+  spark: require('../../assets/stickers/spark.png'),
+  coffee: require('../../assets/stickers/coffee.png'),
+  leaf: require('../../assets/stickers/leaf.png'),
+  book: require('../../assets/stickers/book.png'),
+  music: require('../../assets/stickers/music.png'),
+  art: require('../../assets/stickers/art.png'),
+  thrift: require('../../assets/stickers/thrift.png'),
+  food: require('../../assets/stickers/food.png'),
+  landmark: require('../../assets/stickers/landmark.png'),
+  event: require('../../assets/stickers/event.png'),
+  study: require('../../assets/stickers/study.png'),
+  culture: require('../../assets/stickers/culture.png'),
+  surprise: require('../../assets/stickers/surprise.png'),
+  map: require('../../assets/stickers/map.png'),
+  journal: require('../../assets/stickers/journal.png'),
 };
 
 export const CATEGORY_STICKER: Record<InterestCategory, StickerId> = {
@@ -98,36 +69,13 @@ export function stickerForCategory(category: InterestCategory): StickerId {
 
 export function stickerForStatus(status: SidequestStatus): StickerId {
   switch (status) {
-    case 'suggested':
-    case 'discovered':
-      return 'spark';
-    case 'accepted':
-    case 'en_route':
-      return 'walk';
-    case 'arrived':
-      return 'arrive';
     case 'completed':
       return 'journal';
-    case 'saved':
-      return 'book';
-    case 'dismissed':
-    case 'abandoned':
-    case 'expired':
-      return 'pause';
+    case 'arrived':
+    case 'en_route':
+    case 'accepted':
+      return 'map';
     default:
-      return 'compass';
+      return 'spark';
   }
 }
-
-/** Decorative stickers for editorial punctuation (not category-bound). */
-export const DECOR_STICKERS: StickerId[] = [
-  'spark',
-  'orb',
-  'croissant',
-  'banana',
-  'candy',
-  'coral',
-  'seed',
-  'pencil',
-  'key',
-];

@@ -11,52 +11,101 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { border, color, fonts, motion, radius, space, type } from '../tokens';
-import { Body, Mono, Muted, Subtitle } from './Text';
-import { SectionHeader } from './Editorial';
+import { color, fonts, poster, space } from '../tokens';
+import { Body, Display, Label, Muted, Title } from './Text';
 import { Sticker } from './Sticker';
+import { Atmosphere, FloorMark } from './Poster';
 import type { StickerId } from '../stickers';
+import { type as typeScale } from '../tokens';
+
+export function Panel({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}) {
+  return <View style={[styles.panel, style]}>{children}</View>;
+}
+
+export function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <Label style={styles.eyebrow}>{children}</Label>;
+}
 
 export function Screen({
   children,
   style,
-  scroll = false,
+  atmosphere = true,
+  floor,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
-  scroll?: boolean;
+  atmosphere?: boolean;
+  floor?: string | false;
 }) {
-  const content = scroll ? (
-    <ScrollView
-      contentContainerStyle={[styles.scrollContent, style]}
-      keyboardShouldPersistTaps="handled"
-    >
-      {children}
-    </ScrollView>
-  ) : (
-    <View style={[styles.screenInner, style]}>{children}</View>
-  );
-
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      {content}
+      {atmosphere ? <Atmosphere /> : null}
+      {floor !== false ? <FloorMark text={floor || 'SIDEQUEST'} /> : null}
+      <View style={[styles.inner, style]}>{children}</View>
     </SafeAreaView>
   );
 }
 
+export function ScreenScroll({
+  children,
+  refreshControl,
+  atmosphere = true,
+  floor,
+}: {
+  children: React.ReactNode;
+  refreshControl?: React.ReactElement;
+  atmosphere?: boolean;
+  floor?: string | false;
+}) {
+  return (
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      {atmosphere ? <Atmosphere /> : null}
+      {floor !== false ? <FloorMark text={floor || 'SIDEQUEST'} /> : null}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+      >
+        {children}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+/** Silver pill CTA — Damn Good / Dark gallery "Visit site" */
 export function Button({
   label,
   onPress,
   variant = 'primary',
   disabled,
-  sticker,
 }: {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'ghost';
   disabled?: boolean;
-  sticker?: StickerId;
 }) {
+  if (variant === 'ghost') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        disabled={disabled}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.ghost,
+          pressed && styles.ghostPressed,
+          disabled && styles.disabled,
+        ]}
+      >
+        <Text style={styles.ghostLabel}>{label}</Text>
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       accessibilityRole="button"
@@ -64,23 +113,29 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        variant === 'secondary' && styles.buttonSecondary,
-        variant === 'ghost' && styles.buttonGhost,
-        variant === 'danger' && styles.buttonDanger,
-        (pressed || disabled) && { opacity: motion.pressOpacity },
+        pressed && styles.buttonPressed,
+        disabled && styles.disabled,
       ]}
     >
-      {sticker ? <Sticker id={sticker} size="sm" /> : null}
-      <Text
-        style={[
-          styles.buttonLabel,
-          (variant === 'secondary' || variant === 'ghost') &&
-            styles.buttonLabelInverse,
-          variant === 'danger' && styles.buttonLabelDanger,
-        ]}
-      >
-        {label}
-      </Text>
+      <Text style={styles.buttonLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function CenterGhost({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.centerGhost, pressed && styles.ghostPressed]}
+    >
+      <Text style={styles.centerGhostLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -101,36 +156,14 @@ export function Chip({
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        selected && styles.chipSelected,
-        pressed && { opacity: motion.pressOpacity },
+        selected && styles.chipOn,
+        pressed && styles.chipPressed,
       ]}
     >
-      {sticker ? <Sticker id={sticker} size="xs" /> : null}
-      <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>
+      {sticker ? <Sticker id={sticker} size="sm" /> : null}
+      <Text style={[styles.chipLabel, selected && styles.chipSelected]}>
         {label}
       </Text>
-    </Pressable>
-  );
-}
-
-export function Row({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value?: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={styles.row}
-      accessibilityRole={onPress ? 'button' : undefined}
-    >
-      <Text style={styles.rowLabel}>{label}</Text>
-      {value ? <Mono style={styles.rowValue}>{value}</Mono> : null}
     </Pressable>
   );
 }
@@ -139,7 +172,6 @@ export function ToggleRow({
   label,
   value,
   onValueChange,
-  description,
 }: {
   label: string;
   value: boolean;
@@ -147,17 +179,14 @@ export function ToggleRow({
   description?: string;
 }) {
   return (
-    <View style={styles.toggleRow}>
-      <View style={{ flex: 1, gap: space[1] }}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {description ? <Muted>{description}</Muted> : null}
-      </View>
+    <View style={styles.toggle}>
+      <Text style={styles.toggleLabel}>{label}</Text>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: color.lineSubtle, true: color.ink }}
-        thumbColor={color.bg}
-        ios_backgroundColor={color.lineSubtle}
+        trackColor={{ false: color.line, true: color.ink }}
+        thumbColor={color.surface}
+        ios_backgroundColor={color.line}
       />
     </View>
   );
@@ -167,7 +196,7 @@ export function Field(props: TextInputProps) {
   return (
     <TextInput
       {...props}
-      placeholderTextColor={color.inkTertiary}
+      placeholderTextColor={color.muted}
       style={[styles.input, props.style]}
     />
   );
@@ -176,169 +205,175 @@ export function Field(props: TextInputProps) {
 export function Loading() {
   return (
     <View style={styles.loading}>
+      <Atmosphere />
       <ActivityIndicator color={color.ink} />
     </View>
   );
 }
 
-export function Section({
-  title,
-  children,
-  sticker,
-}: {
-  title: string;
-  children: React.ReactNode;
-  sticker?: StickerId;
-}) {
-  return (
-    <View style={styles.section}>
-      <SectionHeader label={title} sticker={sticker} />
-      {children}
-    </View>
-  );
-}
-
-export function Divider() {
-  return <View style={styles.divider} />;
-}
-
 export function QuestRow({
   name,
   meta,
-  hook,
   sticker,
   onPress,
 }: {
   name: string;
-  meta: string;
-  hook?: string;
+  meta?: string;
   sticker: StickerId;
   onPress: () => void;
+  hook?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.questRow, pressed && { opacity: motion.pressOpacity }]}
+      style={({ pressed }) => [styles.quest, pressed && styles.questPressed]}
     >
-      <Sticker id={sticker} size="lg" tilt={-4} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Subtitle>{name}</Subtitle>
-        {hook ? <Body numberOfLines={2}>{hook}</Body> : null}
-        <Mono>{meta}</Mono>
+      <Sticker id={sticker} size="md" />
+      <View style={styles.questText}>
+        <Body>{name}</Body>
+        {meta ? <Muted>{meta}</Muted> : null}
       </View>
     </Pressable>
   );
 }
 
+export function Brand({ sticker }: { sticker?: StickerId; knockout?: boolean }) {
+  return (
+    <View style={styles.brand}>
+      <Text style={styles.brandWord}>SIDEQUEST</Text>
+      {sticker ? <Sticker id={sticker} size="sm" /> : null}
+    </View>
+  );
+}
+
+export { Title, Body, Muted, Label, Display };
+
 const styles = StyleSheet.create({
-  safe: {
+  safe: { flex: 1, backgroundColor: color.bg },
+  inner: {
     flex: 1,
-    backgroundColor: color.bg,
+    paddingHorizontal: space[4],
+    paddingTop: space[4],
+    zIndex: 2,
   },
-  screenInner: {
-    flex: 1,
-    paddingHorizontal: space[5],
-    paddingTop: space[3],
-    backgroundColor: color.bg,
+  scroll: {
+    paddingHorizontal: space[4],
+    paddingTop: space[4],
+    paddingBottom: space[9],
+    zIndex: 2,
   },
-  scrollContent: {
-    paddingHorizontal: space[5],
-    paddingTop: space[3],
-    paddingBottom: space[10],
-    backgroundColor: color.bg,
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[2],
+    marginBottom: space[5],
+  },
+  brandWord: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    letterSpacing: 1,
+    color: color.ink,
+  },
+  panel: {
+    width: '100%',
+    marginVertical: space[4],
+  },
+  eyebrow: {
+    textAlign: 'center',
+    color: color.muted,
+    marginBottom: space[2],
   },
   button: {
-    backgroundColor: color.fillInverse,
-    paddingVertical: space[3] + 2,
-    paddingHorizontal: space[4],
-    borderRadius: radius.none,
+    backgroundColor: color.surface,
+    paddingVertical: 14,
+    paddingHorizontal: space[6],
     alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: space[2],
-    marginVertical: space[1],
-    borderWidth: border.hairline,
-    borderColor: color.line,
+    marginTop: space[4],
+    alignSelf: 'center',
+    borderRadius: poster.radius,
+    minWidth: 180,
   },
-  buttonSecondary: {
-    backgroundColor: color.bg,
-  },
-  buttonGhost: {
-    backgroundColor: 'transparent',
-    borderColor: color.lineSubtle,
-  },
-  buttonDanger: {
-    backgroundColor: color.bg,
-    borderColor: color.ink,
+  buttonPressed: {
+    backgroundColor: color.ink,
   },
   buttonLabel: {
     fontFamily: fonts.sansSemiBold,
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 0.2,
-    color: color.fillInverseText,
+    color: color.onSurface,
   },
-  buttonLabelInverse: {
-    color: color.ink,
-  },
-  buttonLabelDanger: {
-    color: color.ink,
-  },
-  chip: {
-    borderWidth: border.hairline,
-    borderColor: color.line,
-    borderRadius: radius.pill,
-    paddingHorizontal: space[3],
-    paddingVertical: space[2],
-    margin: space[1],
-    flexDirection: 'row',
+  ghost: {
+    paddingVertical: space[3],
     alignItems: 'center',
-    gap: space[1],
-    backgroundColor: color.bg,
+    alignSelf: 'stretch',
   },
-  chipSelected: {
-    backgroundColor: color.fillInverse,
+  ghostPressed: {
+    backgroundColor: color.floor,
   },
-  chipLabel: {
-    fontFamily: fonts.monoMedium,
+  ghostLabel: {
+    fontFamily: fonts.sansMedium,
     fontSize: 11,
-    letterSpacing: 0.6,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     color: color.ink,
+    textAlign: 'center',
   },
-  chipLabelSelected: {
-    color: color.fillInverseText,
-  },
-  row: {
+  centerGhost: {
     paddingVertical: space[3],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.lineSubtle,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: space[3],
+    alignItems: 'center',
+    width: '100%',
   },
-  rowLabel: {
+  centerGhostLabel: {
     fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    color: color.ink,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: color.muted,
   },
-  rowValue: {
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  toggleRow: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[3],
-    paddingVertical: space[3],
+    gap: space[2],
+    paddingVertical: space[2],
+    paddingHorizontal: space[3],
+    marginHorizontal: space[1],
+    marginBottom: space[2],
+  },
+  chipOn: {
+    borderBottomWidth: 1,
+    borderBottomColor: color.ink,
+  },
+  chipPressed: {
+    backgroundColor: color.floor,
+  },
+  chipLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: color.muted,
+  },
+  chipSelected: {
+    color: color.ink,
+  },
+  toggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: space[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.lineSubtle,
+    borderBottomColor: color.line,
+  },
+  toggleLabel: {
+    fontFamily: fonts.sans,
+    fontSize: typeScale.body.fontSize,
+    color: color.ink,
   },
   input: {
-    borderWidth: border.hairline,
-    borderColor: color.line,
-    borderRadius: radius.none,
-    padding: space[3],
-    fontSize: type.body.fontSize,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: color.line,
+    paddingVertical: space[3],
+    fontSize: typeScale.body.fontSize,
     fontFamily: fonts.sans,
     color: color.ink,
     marginVertical: space[2],
@@ -349,20 +384,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: color.bg,
   },
-  section: {
-    marginBottom: space[2],
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: color.lineSubtle,
-    marginVertical: space[4],
-  },
-  questRow: {
+  quest: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: space[3],
     paddingVertical: space[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.lineSubtle,
+    borderBottomColor: color.line,
   },
+  questPressed: {
+    backgroundColor: color.floor,
+  },
+  questText: { flex: 1, gap: space[1] },
+  disabled: { opacity: 0.35 },
 });

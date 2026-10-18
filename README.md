@@ -12,7 +12,8 @@ BeReal-level chrome restraint: black/white UI only. Color arrives exclusively th
 
 - Tokens & components: `src/design/`
 - Spec: [`src/design/DESIGN.md`](src/design/DESIGN.md)
-- Fonts: Outfit (sans) · IBM Plex Mono (labels) · Caveat (script accent)
+- Type: Schibsted Grotesk (poster neo-grotesque, giant display) · white + grain · stickers only for color
+- Poster refs: `assets/design/ref-festival-bandeiras.jpg`, `ref-poster-brush.jpg`, `ref-a2-noir.png`
 
 ## Quick start
 

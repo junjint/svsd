@@ -1,36 +1,38 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Body,
   Button,
   Chip,
-  EditorialHeadline,
-  InlineStickerLine,
-  Muted,
-  Screen,
-  Section,
+  CollageHero,
+  Panel,
+  PosterScreen,
 } from '@/components/ui';
-import {
-  INTEREST_LABELS,
-  type BudgetPreference,
-  type DetourMinutes,
-  type InterestCategory,
-  type NotificationFrequency,
-  type SpontaneityLevel,
-} from '@/types';
+import { type DetourMinutes, type InterestCategory } from '@/types';
 import { useAppStore } from '@/stores/appStore';
-import { requestForegroundLocation } from '@/services/location/permissions';
 import { stickerForCategory } from '@/design';
-import { space } from '@/design/tokens';
+import { color, space } from '@/design/tokens';
 
-const ALL_INTERESTS = Object.keys(INTEREST_LABELS) as InterestCategory[];
+const INTERESTS: { id: InterestCategory; label: string }[] = [
+  { id: 'coffee', label: 'Coffee' },
+  { id: 'nature', label: 'Nature' },
+  { id: 'bookstores', label: 'Books' },
+  { id: 'live_music', label: 'Music' },
+  { id: 'art', label: 'Art' },
+  { id: 'thrifting', label: 'Thrift' },
+  { id: 'local_food', label: 'Food' },
+  { id: 'architecture', label: 'Landmarks' },
+  { id: 'community_events', label: 'Events' },
+  { id: 'study_spots', label: 'Study' },
+  { id: 'cultural', label: 'Culture' },
+  { id: 'unexpected', label: 'Surprise' },
+];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const setExplorationEnabled = useAppStore((s) => s.setExplorationEnabled);
-
   const [step, setStep] = useState(0);
   const [interests, setInterests] = useState<InterestCategory[]>([
     'coffee',
@@ -38,197 +40,115 @@ export default function OnboardingScreen() {
     'art',
   ]);
   const [detourMinutes, setDetourMinutes] = useState<DetourMinutes>(10);
-  const [budget, setBudget] = useState<BudgetPreference>('any');
-  const [spontaneity, setSpontaneity] =
-    useState<SpontaneityLevel>('adventurous');
-  const [frequency, setFrequency] = useState<NotificationFrequency>('medium');
-  const [avoided, setAvoided] = useState<InterestCategory[]>([]);
-  const [locationNote, setLocationNote] = useState('');
 
-  const toggleInterest = (c: InterestCategory) => {
+  const toggle = (c: InterestCategory) => {
     setInterests((prev) =>
       prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
     );
   };
 
-  const toggleAvoid = (c: InterestCategory) => {
-    setAvoided((prev) =>
-      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
-    );
-  };
-
-  const finish = async (enableExploration: boolean) => {
+  const finish = async () => {
     await completeOnboarding({
       interests,
-      avoidedCategories: avoided,
       detourMinutes,
-      budget,
-      spontaneity,
-      notificationFrequency: frequency,
-      explorationEnabled: enableExploration,
+      explorationEnabled: true,
     });
-    if (enableExploration) {
-      await setExplorationEnabled(true);
-    }
+    await setExplorationEnabled(true);
     router.replace('/(tabs)/home');
   };
 
   return (
-    <Screen style={{ paddingBottom: 0 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: space[10] }}>
-        <EditorialHeadline
-          before="Side"
-          script="quest"
-          sticker="spark"
-        />
-        <InlineStickerLine
-          leading="Life's better with"
-          sticker="croissant"
-          trailing="unexpected detours."
-        />
+    <PosterScreen
+      bandLeft="Home"
+      bandRight={step === 0 ? 'Interests' : 'Distance'}
+      edgeLeft="Ann Arbor"
+      edgeRight="Walk more"
+      floor="SIDEQUEST"
+      centered
+    >
+      <CollageHero
+        line1="SIDE"
+        line2="QUEST"
+        stickers={['spark', 'coffee', 'book', 'art']}
+      />
 
-        {step === 0 && (
-          <Section title="Curious about" sticker="orb">
-            <Body>Pick anything that sounds fun.</Body>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-              {ALL_INTERESTS.map((c) => (
-                <Chip
-                  key={c}
-                  label={INTEREST_LABELS[c]}
-                  sticker={stickerForCategory(c)}
-                  selected={interests.includes(c)}
-                  onPress={() => toggleInterest(c)}
-                />
-              ))}
-            </View>
-            <Button label="Next" sticker="walk" onPress={() => setStep(1)} />
-          </Section>
-        )}
+      <Body style={styles.support}>
+        {step === 0
+          ? 'Pick what you care about. We suggest nearby places worth a short walk.'
+          : 'Choose a walking distance that feels easy to say yes to.'}
+      </Body>
 
-        {step === 1 && (
-          <Section title="Preferences" sticker="pencil">
-            <Muted>Walking detour</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {([5, 10, 15, 20] as DetourMinutes[]).map((m) => (
-                <Chip
-                  key={m}
-                  label={`${m} min`}
-                  selected={detourMinutes === m}
-                  onPress={() => setDetourMinutes(m)}
-                />
-              ))}
-            </View>
-
-            <Muted>Budget</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {(
-                [
-                  ['free', 'Free'],
-                  ['under_10', 'Under $10'],
-                  ['under_25', 'Under $25'],
-                  ['any', 'Any'],
-                ] as [BudgetPreference, string][]
-              ).map(([v, label]) => (
-                <Chip
-                  key={v}
-                  label={label}
-                  selected={budget === v}
-                  onPress={() => setBudget(v)}
-                />
-              ))}
-            </View>
-
-            <Muted>Spontaneity</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {(
-                [
-                  ['comfortable', 'Comfortable'],
-                  ['adventurous', 'Adventurous'],
-                  ['surprise_me', 'Surprise Me'],
-                ] as [SpontaneityLevel, string][]
-              ).map(([v, label]) => (
-                <Chip
-                  key={v}
-                  label={label}
-                  selected={spontaneity === v}
-                  onPress={() => setSpontaneity(v)}
-                />
-              ))}
-            </View>
-
-            <Muted>Notifications</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {(
-                [
-                  ['low', 'Low'],
-                  ['medium', 'Medium'],
-                  ['high', 'High'],
-                ] as [NotificationFrequency, string][]
-              ).map(([v, label]) => (
-                <Chip
-                  key={v}
-                  label={label}
-                  selected={frequency === v}
-                  onPress={() => setFrequency(v)}
-                />
-              ))}
-            </View>
-
-            <Muted>Avoid (optional)</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {ALL_INTERESTS.map((c) => (
-                <Chip
-                  key={c}
-                  label={INTEREST_LABELS[c]}
-                  selected={avoided.includes(c)}
-                  onPress={() => toggleAvoid(c)}
-                />
-              ))}
-            </View>
-
-            <Button label="Back" variant="ghost" onPress={() => setStep(0)} />
-            <Button label="Next" sticker="walk" onPress={() => setStep(2)} />
-          </Section>
-        )}
-
-        {step === 2 && (
-          <Section title="Location" sticker="map">
-            <Body>
-              Sidequest can suggest nearby places when you grant location
-              access. Background discovery is requested later only if you
-              explicitly enable it.
-            </Body>
-            <Muted>
-              Demo mode works without permissions using downtown Ann Arbor.
-            </Muted>
-            {locationNote ? <Body>{locationNote}</Body> : null}
-            <Button
-              label="Allow foreground location"
-              variant="secondary"
-              sticker="arrive"
-              onPress={async () => {
-                const ok = await requestForegroundLocation();
-                setLocationNote(
-                  ok
-                    ? 'Foreground location granted.'
-                    : 'Not granted — demo mode still works.'
-                );
-              }}
-            />
-            <Button
-              label="Start exploring"
-              sticker="spark"
-              onPress={() => finish(true)}
-            />
-            <Button
-              label="Skip for now"
-              variant="ghost"
-              onPress={() => finish(false)}
-            />
-            <Button label="Back" variant="ghost" onPress={() => setStep(1)} />
-          </Section>
-        )}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Panel>
+          <View style={styles.chips}>
+            {step === 0
+              ? INTERESTS.map(({ id, label }) => (
+                  <Chip
+                    key={id}
+                    label={label}
+                    sticker={stickerForCategory(id)}
+                    selected={interests.includes(id)}
+                    onPress={() => toggle(id)}
+                  />
+                ))
+              : ([5, 10, 15, 20] as DetourMinutes[]).map((m) => (
+                  <Chip
+                    key={m}
+                    label={`${m} min`}
+                    selected={detourMinutes === m}
+                    onPress={() => setDetourMinutes(m)}
+                  />
+                ))}
+          </View>
+        </Panel>
       </ScrollView>
-    </Screen>
+
+      <View style={styles.footer}>
+        {step === 0 ? (
+          <Button
+            label="Continue"
+            onPress={() => setStep(1)}
+            disabled={interests.length === 0}
+          />
+        ) : (
+          <>
+            <Button label="Get started" onPress={finish} />
+            <Button label="Back" variant="ghost" onPress={() => setStep(0)} />
+          </>
+        )}
+      </View>
+    </PosterScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  support: {
+    textAlign: 'center',
+    color: color.muted,
+    maxWidth: 300,
+    marginBottom: space[4],
+  },
+  scroll: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    alignItems: 'stretch',
+    paddingBottom: space[4],
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footer: {
+    width: '100%',
+    paddingTop: space[3],
+    alignItems: 'center',
+    gap: space[1],
+  },
+});

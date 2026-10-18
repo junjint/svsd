@@ -15,9 +15,12 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@expo-google-fonts/archivo-black": "^0.4.1",
+    "@expo-google-fonts/bebas-neue": "^0.4.1",
     "@expo-google-fonts/caveat": "^0.4.2",
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/schibsted-grotesk": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.118.0",
     "babel-preset-expo": "~58.0.0",
@@ -26,6 +29,7 @@
     "expo-file-system": "~58.0.9",
     "expo-font": "~58.0.8",
     "expo-image-picker": "~58.0.10",
+    "expo-linear-gradient": "~58.0.3",
     "expo-linking": "~58.0.13",
     "expo-location": "~58.0.17",
     "expo-notifications": "~58.1.5",

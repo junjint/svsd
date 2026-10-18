@@ -1,124 +1,114 @@
 /**
- * Sidequest design tokens
+ * Sidequest ← Damn Good Brands
+ * https://damngoodbrands.com/ · dark.design gallery
  *
- * Philosophy: BeReal-level minimal chrome. Editorial typography + space.
- * Color appears ONLY through picture stickers — never as UI fills/accents.
+ * Pure black stage. Giant condensed uppercase wordmark.
+ * Stickers float over type like their 3D objects.
+ * Tiny tracked caps for chrome. Color only from stickers.
  */
 
 export const color = {
-  bg: '#FFFFFF',
-  bgMuted: '#FAFAFA',
-  ink: '#000000',
-  inkSecondary: '#3A3A3A',
-  inkTertiary: '#8A8A8A',
-  line: '#000000',
-  lineSubtle: '#E8E8E8',
-  fillInverse: '#000000',
-  fillInverseText: '#FFFFFF',
-  // Intentionally no brand accent colors.
+  bg: '#000000',
+  ink: '#FFFFFF',
+  muted: '#8A8A8A',
+  floor: '#141414',
+  line: '#2A2A2A',
+  surface: '#D9D9D9',
+  onSurface: '#000000',
+  knockOut: '#FFFFFF',
 } as const;
 
-/** 4px base grid */
+export const bandeira = {
+  violet: '#5B2C8E',
+  yellow: '#F5C400',
+  blue: '#1E4FD6',
+  coral: '#E85A3C',
+  lime: '#C5E063',
+  salmon: '#E8927C',
+  green: '#2F6B3A',
+  peach: '#F0C9A8',
+  pink: '#E8A0C8',
+  black: '#000000',
+  white: '#FFFFFF',
+} as const;
+
+export const poster = {
+  headerPadY: 12,
+  /** Stacked hero — Bebas condensed */
+  heroSize: 92,
+  heroLeading: 78,
+  heroTracking: 1,
+  floorSize: 120,
+  floorLeading: 100,
+  floorTracking: -2,
+  displaySize: 40,
+  displayLeading: 42,
+  displayTracking: 0.5,
+  labelSize: 10,
+  labelTracking: 2.4,
+  radius: 999,
+  radiusBox: 8,
+  asterisk: ' * ',
+} as const;
+
 export const space = {
-  0: 0,
   1: 4,
   2: 8,
   3: 12,
   4: 16,
-  5: 20,
-  6: 24,
-  7: 32,
-  8: 40,
-  9: 48,
-  10: 64,
-  12: 80,
-} as const;
-
-export const radius = {
-  none: 0,
-  sm: 4,
-  md: 8,
-  /** BeReal-style status / name pills */
-  pill: 999,
-} as const;
-
-export const border = {
-  hairline: 1,
-  thick: 1.5,
-} as const;
-
-export const type = {
-  /** Brand / screen titles */
-  display: {
-    fontSize: 36,
-    lineHeight: 40,
-    letterSpacing: -1.2,
-    fontWeight: '700' as const,
-  },
-  /** Section headlines */
-  title: {
-    fontSize: 24,
-    lineHeight: 28,
-    letterSpacing: -0.6,
-    fontWeight: '700' as const,
-  },
-  /** Card / quest names */
-  subtitle: {
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
-    fontWeight: '600' as const,
-  },
-  /** Reading text */
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    letterSpacing: -0.1,
-    fontWeight: '400' as const,
-  },
-  /** Meta, captions */
-  caption: {
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    fontWeight: '400' as const,
-  },
-  /** ALL-CAPS technical labels (LOCAL TIME, STATUS) */
-  label: {
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 1.4,
-    fontWeight: '500' as const,
-    textTransform: 'uppercase' as const,
-  },
-  /** Mono data rows */
-  mono: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.2,
-    fontWeight: '400' as const,
-  },
-  /** Script accent for a single word in a headline */
-  script: {
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -0.4,
-    fontWeight: '400' as const,
-  },
+  5: 24,
+  6: 32,
+  7: 48,
+  8: 64,
+  9: 80,
 } as const;
 
 export const fonts = {
-  sans: 'Outfit_400Regular',
-  sansMedium: 'Outfit_500Medium',
-  sansSemiBold: 'Outfit_600SemiBold',
-  sansBold: 'Outfit_700Bold',
-  mono: 'IBMPlexMono_400Regular',
-  monoMedium: 'IBMPlexMono_500Medium',
-  script: 'Caveat_500Medium',
-  scriptBold: 'Caveat_700Bold',
+  /** UI chrome — Neue Montreal analogue */
+  sans: 'SchibstedGrotesk_400Regular',
+  sansMedium: 'SchibstedGrotesk_500Medium',
+  sansSemiBold: 'SchibstedGrotesk_600SemiBold',
+  sansBold: 'SchibstedGrotesk_700Bold',
+  sansBlack: 'SchibstedGrotesk_900Black',
+  /** Hero condensed caps — F37 Stout analogue */
+  display: 'BebasNeue_400Regular',
 } as const;
 
-export const motion = {
-  pressOpacity: 0.55,
-  durationFast: 120,
+export const type = {
+  hero: {
+    fontSize: poster.heroSize,
+    lineHeight: poster.heroLeading,
+    letterSpacing: poster.heroTracking,
+  },
+  floor: {
+    fontSize: poster.floorSize,
+    lineHeight: poster.floorLeading,
+    letterSpacing: poster.floorTracking,
+  },
+  display: {
+    fontSize: poster.displaySize,
+    lineHeight: poster.displayLeading,
+    letterSpacing: poster.displayTracking,
+  },
+  title: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.2,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: 0,
+  },
+  muted: {
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  label: {
+    fontSize: poster.labelSize,
+    lineHeight: 14,
+    letterSpacing: poster.labelTracking,
+    textTransform: 'uppercase' as const,
+  },
 } as const;

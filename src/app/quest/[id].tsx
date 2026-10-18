@@ -1,24 +1,19 @@
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Body,
   Button,
-  Capsule,
-  Frame,
-  InlineStickerLine,
-  Mono,
+  HeaderBand,
+  KnockoutBlock,
   Muted,
-  Screen,
-  Section,
+  ScreenScroll,
   Sticker,
   Title,
 } from '@/components/ui';
 import { useAppStore } from '@/stores/appStore';
-import { INTEREST_LABELS } from '@/types';
 import { formatDistance } from '@/utils/geo';
-import { mapsDeepLinkPreview } from '@/services/navigation/maps';
 import { stickerForCategory } from '@/design';
-import { space } from '@/design/tokens';
+import { color, space } from '@/design/tokens';
 
 export default function QuestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,101 +26,65 @@ export default function QuestDetailScreen() {
 
   if (!quest) {
     return (
-      <Screen>
-        <Title>Sidequest not found</Title>
+      <ScreenScroll>
+        <Title>Gone</Title>
         <Button label="Back" variant="ghost" onPress={() => router.back()} />
-      </Screen>
+      </ScreenScroll>
     );
   }
 
-  const links = mapsDeepLinkPreview(quest.coordinates, quest.placeName);
-  const sticker = stickerForCategory(quest.category);
-
   return (
-    <Screen style={{ paddingBottom: 0 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: space[10] }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          <Sticker id={sticker} size="xl" tilt={-8} />
-          <View style={{ flex: 1 }}>
-            <Title>{quest.placeName}</Title>
-            {quest.isSimulated ? <Capsule>Simulated</Capsule> : null}
-          </View>
-        </View>
+    <ScreenScroll>
+      <HeaderBand left="Sidequest * Quest" right={formatDistance(quest.distanceMeters)} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[3] }}>
+        <Sticker id={stickerForCategory(quest.category)} size="lg" />
+        <Title style={{ flex: 1, fontSize: 22 }}>{quest.placeName}</Title>
+      </View>
 
-        <Section title="The hook" sticker="spark">
-          <InlineStickerLine leading={quest.storyHook} sticker={sticker} />
-          <Muted>{quest.suggestedActivity}</Muted>
-        </Section>
+      <View style={{ height: space[5] }} />
+      <KnockoutBlock style={{ marginBottom: space[4] }}>
+        <Body style={{ color: color.onSurface }}>{quest.storyHook}</Body>
+      </KnockoutBlock>
+      <View style={{ height: space[2] }} />
+      <Muted>
+        {formatDistance(quest.distanceMeters)}
+        {quest.estimatedWalkingMinutes
+          ? ` · ${quest.estimatedWalkingMinutes} min`
+          : ''}
+      </Muted>
 
-        <Section title="Place" sticker="arrive">
-          <Body>{quest.description}</Body>
-          <Mono>{quest.address}</Mono>
-          <Mono>
-            {formatDistance(quest.distanceMeters)}
-            {quest.estimatedWalkingMinutes
-              ? ` · ~${quest.estimatedWalkingMinutes} min walk`
-              : ''}
-            {' · '}
-            {INTEREST_LABELS[quest.category]}
-          </Mono>
-          {quest.costInfo ? <Muted>Cost: {quest.costInfo}</Muted> : null}
-        </Section>
-
-        <Frame label="Why this">
-          <Body>{quest.whyRecommended}</Body>
-          <Mono style={{ marginTop: 8 }}>
-            score  {quest.personalizationScore}
-            {quest.scoreBreakdown
-              ? ` · interest ${quest.scoreBreakdown.interest.toFixed(2)} · proximity ${quest.scoreBreakdown.proximity.toFixed(2)}`
-              : ''}
-          </Mono>
-        </Frame>
-
-        <Capsule>{quest.status}</Capsule>
-
-        <View style={{ height: space[4] }} />
-
-        <Button
-          label="Accept sidequest"
-          sticker="walk"
-          onPress={async () => {
-            await acceptQuest(quest.id);
-            router.push('/quest/active');
-          }}
-        />
-        <Button
-          label="Open walking directions"
-          variant="secondary"
-          sticker="map"
-          onPress={async () => {
-            await acceptQuest(quest.id);
-            await openDirections(quest.id);
-            router.push('/quest/active');
-          }}
-        />
-        <Button
-          label="Save for later"
-          variant="ghost"
-          sticker="book"
-          onPress={async () => {
-            await saveQuest(quest.id);
-            router.back();
-          }}
-        />
-        <Button
-          label="Dismiss"
-          variant="ghost"
-          onPress={async () => {
-            await dismissQuest(quest.id);
-            router.back();
-          }}
-        />
-
-        <Section title="Maps" sticker="compass">
-          <Muted numberOfLines={2}>Apple: {links.apple}</Muted>
-          <Muted numberOfLines={2}>Google: {links.google}</Muted>
-        </Section>
-      </ScrollView>
-    </Screen>
+      <Button
+        label="Accept"
+        onPress={async () => {
+          await acceptQuest(quest.id);
+          router.push('/quest/active');
+        }}
+      />
+      <Button
+        label="Directions"
+        variant="ghost"
+        onPress={async () => {
+          await acceptQuest(quest.id);
+          await openDirections(quest.id);
+          router.push('/quest/active');
+        }}
+      />
+      <Button
+        label="Save"
+        variant="ghost"
+        onPress={async () => {
+          await saveQuest(quest.id);
+          router.back();
+        }}
+      />
+      <Button
+        label="Dismiss"
+        variant="ghost"
+        onPress={async () => {
+          await dismissQuest(quest.id);
+          router.back();
+        }}
+      />
+    </ScreenScroll>
   );
 }
