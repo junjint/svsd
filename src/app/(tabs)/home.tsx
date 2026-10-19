@@ -48,7 +48,7 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl
           refreshing={busy}
-          tintColor={color.ink}
+          tintColor={color.piccolo}
           onRefresh={async () => {
             setBusy(true);
             try {
@@ -65,11 +65,7 @@ export default function HomeScreen() {
         live={discovery.status === 'exploring'}
       />
 
-      <CollageHero
-        line1="SIDE"
-        line2="QUEST"
-        stickers={['spark', 'coffee', 'book', 'art']}
-      />
+      <CollageHero line1="Side" line2="quest" />
 
       <Body style={styles.support}>
         {demo.enabled
@@ -125,10 +121,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   support: {
-    textAlign: 'center',
-    color: color.muted,
-    alignSelf: 'center',
-    maxWidth: 280,
+    color: color.trunks,
     marginBottom: space[2],
   },
   empty: {

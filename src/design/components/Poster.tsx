@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { color, fonts, poster, space } from '../tokens';
-import { Floor, Hero, Label } from './Text';
+import { color, fonts, poster, radius, space } from '../tokens';
+import { Display, Label } from './Text';
 import { Sticker } from './Sticker';
 import type { StickerId } from '../stickers';
 
-/* ─── Solid black stage ────────────────────────────────────────────── */
+const moonSrc = require('../../../assets/design/moon/moon.png');
 
 export function Atmosphere({ style }: { style?: ViewStyle }) {
   return <View style={[styles.atmosphere, style]} pointerEvents="none" />;
 }
 
-export function Grain({ style }: { style?: ViewStyle }) {
-  return <Atmosphere style={style} />;
+export function Grain(props: { style?: ViewStyle }) {
+  return <Atmosphere {...props} />;
 }
-
 export function GrainField() {
   return null;
 }
@@ -28,8 +27,24 @@ export function GeoField() {
 export function BrushStrike() {
   return null;
 }
-
-/* ─── Edge nav (DASHBOARD / ABOUT style) ───────────────────────────── */
+export function FloorMark() {
+  return null;
+}
+export function EdgeMeta() {
+  return null;
+}
+export function BandeiraCell() {
+  return null;
+}
+export function BandeiraStrip() {
+  return null;
+}
+export function StickerStrip() {
+  return null;
+}
+export function Marginalia() {
+  return null;
+}
 
 export function HeaderBand({
   left,
@@ -43,72 +58,49 @@ export function HeaderBand({
   const status = live == null ? right : live ? 'Live' : 'Paused';
   return (
     <View style={styles.nav}>
-      <Label style={styles.navItem}>{left}</Label>
-      {status ? <Label style={styles.navMuted}>{status}</Label> : null}
+      <View style={styles.brandRow}>
+        <View style={styles.logoMark}>
+          <Label style={styles.logoText}>mo•n</Label>
+        </View>
+        <Label style={styles.navLeft}>{left}</Label>
+      </View>
+      {status ? (
+        <View style={[styles.badge, live && styles.badgeLive]}>
+          <Label
+            style={
+              live
+                ? { ...styles.badgeText, ...styles.badgeTextLive }
+                : styles.badgeText
+            }
+          >
+            {status}
+          </Label>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-/* ─── Collage hero — stickers float over wordmark like DGB 3D objects ─ */
-
+/** Moon cover-inspired hero: type + lunar image */
 export function CollageHero({
-  line1 = 'SIDE',
-  line2 = 'QUEST',
-  stickers = ['spark', 'coffee', 'book', 'art'] as StickerId[],
+  line1 = 'Side',
+  line2 = 'quest',
 }: {
   line1?: string;
   line2?: string;
   stickers?: StickerId[];
 }) {
   return (
-    <View style={styles.collage}>
-      <View style={styles.wordBlock}>
-        <Hero style={styles.wordLine}>{line1}</Hero>
-        <Hero style={styles.wordLine}>{line2}</Hero>
+    <View style={styles.hero}>
+      <View style={styles.heroCopy}>
+        <Display style={styles.heroTitle}>
+          {line1}
+          {'\n'}
+          {line2}
+        </Display>
+        <Label style={styles.heroSub}>Components · Places · Walks</Label>
       </View>
-      {stickers[0] ? (
-        <View style={[styles.float, styles.floatTL]}>
-          <Sticker id={stickers[0]} size="lg" />
-        </View>
-      ) : null}
-      {stickers[1] ? (
-        <View style={[styles.float, styles.floatTR]}>
-          <Sticker id={stickers[1]} size="lg" />
-        </View>
-      ) : null}
-      {stickers[2] ? (
-        <View style={[styles.float, styles.floatBL]}>
-          <Sticker id={stickers[2]} size="md" />
-        </View>
-      ) : null}
-      {stickers[3] ? (
-        <View style={[styles.float, styles.floatBR]}>
-          <Sticker id={stickers[3]} size="md" />
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-export function FloorMark({ text = 'SIDEQUEST' }: { text?: string }) {
-  return (
-    <View style={styles.floorWrap} pointerEvents="none">
-      <Floor style={styles.floorText}>{text}</Floor>
-    </View>
-  );
-}
-
-export function EdgeMeta({
-  left,
-  right,
-}: {
-  left?: string;
-  right?: string;
-}) {
-  return (
-    <View style={styles.edgeRow} pointerEvents="none">
-      {left ? <Label style={styles.edgeText}>{left}</Label> : <View />}
-      {right ? <Label style={styles.edgeText}>{right}</Label> : null}
+      <Image source={moonSrc} style={styles.moon} resizeMode="cover" />
     </View>
   );
 }
@@ -123,36 +115,19 @@ export function KnockoutBlock({
   return <View style={[styles.knockout, style]}>{children}</View>;
 }
 
-export function KnockoutMark({ text = 'SIDEQUEST' }: { text?: string }) {
+export function KnockoutMark({ text = 'sidequest' }: { text?: string }) {
   return (
     <View style={styles.knockHero}>
-      <Hero style={styles.knockHeroText}>{text}</Hero>
+      <Display>{text}</Display>
     </View>
   );
-}
-
-export function BandeiraCell() {
-  return null;
-}
-export function BandeiraStrip() {
-  return null;
-}
-export function StickerStrip() {
-  return null;
-}
-export function Marginalia() {
-  return null;
 }
 
 export function PosterScreen({
   children,
   bandLeft,
   bandRight,
-  floor = 'SIDEQUEST',
-  centered = true,
-  showFloor = true,
-  edgeLeft,
-  edgeRight,
+  centered = false,
 }: {
   children: ReactNode;
   bandLeft?: string;
@@ -172,13 +147,9 @@ export function PosterScreen({
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.shell}>
         <Atmosphere />
-        {showFloor ? <FloorMark text={floor} /> : null}
         {bandLeft ? (
           <HeaderBand left={bandLeft} right={bandRight} />
         ) : null}
-        {(edgeLeft || edgeRight) && (
-          <EdgeMeta left={edgeLeft} right={edgeRight} />
-        )}
         <View style={[styles.body, centered && styles.bodyCentered]}>
           {children}
         </View>
@@ -188,104 +159,101 @@ export function PosterScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: color.bg },
+  safe: { flex: 1, backgroundColor: color.goku },
   shell: {
     flex: 1,
     paddingHorizontal: space[4],
     paddingTop: space[2],
-    paddingBottom: space[3],
-    overflow: 'hidden',
+    paddingBottom: space[4],
   },
   body: { flex: 1, zIndex: 2 },
   bodyCentered: { alignItems: 'center' },
-
   atmosphere: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: color.bg,
+    backgroundColor: color.goku,
   },
 
   nav: {
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: poster.headerPadY,
-    zIndex: 3,
-  },
-  navItem: {
-    color: color.ink,
-    fontFamily: fonts.sansMedium,
-  },
-  navMuted: {
-    color: color.muted,
-  },
-
-  collage: {
-    width: '100%',
-    minHeight: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: space[4],
-  },
-  wordBlock: {
-    zIndex: 1,
-    alignItems: 'center',
-  },
-  wordLine: {
-    textAlign: 'center',
-  },
-  float: {
-    position: 'absolute',
-    zIndex: 2,
-  },
-  floatTL: { top: 8, left: 4 },
-  floatTR: { top: 0, right: 8 },
-  floatBL: { bottom: 12, left: 20 },
-  floatBR: { bottom: 4, right: 12 },
-
-  floorWrap: {
-    position: 'absolute',
-    left: -24,
-    right: -24,
-    bottom: -48,
-    zIndex: 1,
-    overflow: 'hidden',
-    height: 110,
-    justifyContent: 'flex-end',
-  },
-  floorText: {
-    textAlign: 'center',
-    width: '140%',
-    marginLeft: '-20%',
-  },
-
-  edgeRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: space[2],
   },
-  edgeText: {
-    color: color.muted,
-    fontSize: 9,
-    letterSpacing: 1.6,
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  logoMark: {
+    backgroundColor: color.gohan,
+    borderRadius: radius.sSm,
+    paddingHorizontal: space[2],
+    paddingVertical: space[1],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+  },
+  logoText: {
+    color: color.bulma,
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+    letterSpacing: 0,
+  },
+  navLeft: {
+    color: color.bulma,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 14,
+  },
+  badge: {
+    backgroundColor: color.hit,
+    borderRadius: radius.full,
+    paddingHorizontal: space[3],
+    paddingVertical: space[1],
+  },
+  badgeLive: { backgroundColor: 'rgba(12,214,100,0.15)' },
+  badgeText: { color: color.trunks, fontSize: 11 },
+  badgeTextLive: { color: color.roshi },
+
+  hero: {
+    width: '100%',
+    minHeight: 200,
+    backgroundColor: color.gohan,
+    borderRadius: radius.sLg,
+    overflow: 'hidden',
+    marginVertical: space[4],
+    flexDirection: 'row',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+  },
+  heroCopy: {
+    flex: 1,
+    padding: space[5],
+    justifyContent: 'center',
+    gap: space[3],
+    zIndex: 2,
+  },
+  heroTitle: {
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -1.2,
+  },
+  heroSub: {
+    color: color.trunks,
+    fontSize: 13,
+  },
+  moon: {
+    position: 'absolute',
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    opacity: 0.95,
   },
 
   knockout: {
-    backgroundColor: color.surface,
-    paddingVertical: space[4],
-    paddingHorizontal: space[4],
+    backgroundColor: color.gohan,
+    borderRadius: radius.sMd,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+    padding: space[4],
     marginBottom: space[4],
     width: '100%',
-    borderRadius: poster.radiusBox,
   },
-  knockHero: {
-    marginBottom: space[4],
-    alignItems: 'center',
-  },
-  knockHeroText: {
-    color: color.floor,
-    fontSize: 56,
-    lineHeight: 52,
-  },
+  knockHero: { marginBottom: space[4] },
 });

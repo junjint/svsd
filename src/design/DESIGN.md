@@ -1,32 +1,39 @@
-# Sidequest Design System
+# Sidequest × Moon Design System v1
 
-**Damn Good Brands** stage language  
-https://damngoodbrands.com/ · [dark.design](https://www.dark.design/site/damn-good-brands-1779823860959)
+Figma: [Moon Design System v1](https://www.figma.com/design/HqWHs2iA7kDXabttViiAu7/Moon-Design-System-v1--Community-?node-id=73-2)  
+Docs: [archive.moon.io/colours](https://archive.moon.io/colours)
 
-## Spec
+## Connected via Figma MCP
 
-| Token | Value |
-| --- | --- |
-| Ground | `#000000` solid (no grain, no gradient) |
-| Ink | `#FFFFFF` |
-| Muted | `#8A8A8A` |
-| CTA fill | `#D9D9D9` silver pill |
-| Hero type | Bebas Neue, stacked uppercase (`SIDE` / `QUEST`) |
-| UI type | Schibsted Grotesk, tiny tracked caps |
-| Color | Stickers only, floating over the wordmark |
+Session on file `HqWHs2iA7kDXabttViiAu7`. The linked node (`73:2`) is the **Cover** page (DM Sans, lunar hero, monochrome). Component pages were not exposed in this community file copy via MCP, so tokens follow Moon’s published semantic system + Cover typography.
 
-## Layout (DGB hero)
+## Colour tokens (Dragon Ball Z)
 
-```
-HeaderBand          ← edge caps nav
-EdgeMeta            ← tiny status rails
-CollageHero         ← SIDE / QUEST + 4 stickers over type
-Body support
-Button (silver pill)
-FloorMark           ← oversized bleed type behind
-```
+| Token | Role | Light value |
+| --- | --- | --- |
+| `piccolo` | Accent | `#4E46B4` |
+| `hit` | Secondary fill | `#F5F5F5` |
+| `beerus` | Border | `#EBEBEB` |
+| `goku` | App background | `#F5F5F5` |
+| `gohan` | Surface / card | `#FFFFFF` |
+| `bulma` | Text / icons | `#000000` |
+| `trunks` | Secondary text | `#999CA0` |
+| `goten` / `popo` | Force white / black | |
 
-## Still banned (anti-vibecode)
+Support: `krillin` warning · `chichi` error · `roshi` success · `whis` info
 
-Purple/blue gradients · gradient type · glass cards · grain-over-gradient ·
-eyebrow badges · Inter · emoji headings · opacity-only button fades · em-dash copy
+## Type
+
+**DM Sans** (Moon v1). Display bold with tight tracking (−1 to −2.5). Body 14 / 20.
+
+## Components
+
+- `Button` — piccolo fill, goten label, `radius.iSm` (8)
+- `Chip` — hit pill; selected = piccolo
+- `Panel` — gohan surface + beerus border + `radius.sMd`
+- `CollageHero` — Cover-inspired type + moon image
+- `HeaderBand` — mo•n mark + status badge
+
+## Radius
+
+Interactive: 4 / 8 / 12 · Surface: 4 / 8 / 12 / 16

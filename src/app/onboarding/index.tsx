@@ -59,18 +59,10 @@ export default function OnboardingScreen() {
 
   return (
     <PosterScreen
-      bandLeft="Home"
-      bandRight={step === 0 ? 'Interests' : 'Distance'}
-      edgeLeft="Ann Arbor"
-      edgeRight="Walk more"
-      floor="SIDEQUEST"
-      centered
+      bandLeft="Sidequest"
+      bandRight={step === 0 ? 'Step 1' : 'Step 2'}
     >
-      <CollageHero
-        line1="SIDE"
-        line2="QUEST"
-        stickers={['spark', 'coffee', 'book', 'art']}
-      />
+      <CollageHero line1="Design" line2="walks" />
 
       <Body style={styles.support}>
         {step === 0
@@ -127,28 +119,19 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   support: {
-    textAlign: 'center',
-    color: color.muted,
-    maxWidth: 300,
-    marginBottom: space[4],
+    color: color.trunks,
+    marginBottom: space[3],
   },
-  scroll: {
-    flex: 1,
-    width: '100%',
-  },
-  scrollContent: {
-    alignItems: 'stretch',
-    paddingBottom: space[4],
-  },
+  scroll: { flex: 1, width: '100%' },
+  scrollContent: { paddingBottom: space[4] },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    paddingVertical: space[3],
   },
   footer: {
     width: '100%',
-    paddingTop: space[3],
-    alignItems: 'center',
+    paddingTop: space[2],
     gap: space[1],
   },
 });

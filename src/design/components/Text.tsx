@@ -3,7 +3,6 @@ import { color, fonts, type } from '../tokens';
 
 type Props = TextProps & { children: React.ReactNode; style?: TextStyle | TextStyle[] };
 
-/** Stacked condensed hero — Damn Good wordmark scale */
 export function Hero({ children, style, ...rest }: Props) {
   return (
     <RNText style={[styles.hero, style]} {...rest}>
@@ -63,46 +62,43 @@ export function Label({ children, style, ...rest }: Props) {
 const styles = StyleSheet.create({
   hero: {
     ...type.hero,
-    fontFamily: fonts.display,
-    color: color.ink,
-    textAlign: 'center',
-    textTransform: 'uppercase',
+    fontFamily: fonts.sansBold,
+    color: color.bulma,
+    textAlign: 'left',
   },
   floor: {
     ...type.floor,
-    fontFamily: fonts.display,
-    color: color.floor,
-    textTransform: 'uppercase',
+    fontFamily: fonts.sansBold,
+    color: color.beerus,
   },
   display: {
     ...type.display,
-    fontFamily: fonts.display,
-    color: color.ink,
-    textAlign: 'center',
-    textTransform: 'uppercase',
+    fontFamily: fonts.sansBold,
+    color: color.bulma,
+    textAlign: 'left',
   },
   title: {
     ...type.title,
-    fontFamily: fonts.sansBold,
-    color: color.ink,
+    fontFamily: fonts.sansSemiBold,
+    color: color.bulma,
     textAlign: 'left',
   },
   body: {
     ...type.body,
     fontFamily: fonts.sans,
-    color: color.ink,
+    color: color.bulma,
     textAlign: 'left',
   },
   muted: {
     ...type.muted,
     fontFamily: fonts.sans,
-    color: color.muted,
+    color: color.trunks,
     textAlign: 'left',
   },
   label: {
     ...type.label,
     fontFamily: fonts.sansMedium,
-    color: color.ink,
+    color: color.trunks,
     textAlign: 'left',
   },
 });

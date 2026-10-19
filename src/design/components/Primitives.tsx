@@ -11,10 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { color, fonts, poster, space } from '../tokens';
+import { color, fonts, radius, space } from '../tokens';
 import { Body, Display, Label, Muted, Title } from './Text';
 import { Sticker } from './Sticker';
-import { Atmosphere, FloorMark } from './Poster';
+import { Atmosphere } from './Poster';
 import type { StickerId } from '../stickers';
 import { type as typeScale } from '../tokens';
 
@@ -35,8 +35,6 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 export function Screen({
   children,
   style,
-  atmosphere = true,
-  floor,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
@@ -45,8 +43,7 @@ export function Screen({
 }) {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      {atmosphere ? <Atmosphere /> : null}
-      {floor !== false ? <FloorMark text={floor || 'SIDEQUEST'} /> : null}
+      <Atmosphere />
       <View style={[styles.inner, style]}>{children}</View>
     </SafeAreaView>
   );
@@ -55,8 +52,6 @@ export function Screen({
 export function ScreenScroll({
   children,
   refreshControl,
-  atmosphere = true,
-  floor,
 }: {
   children: React.ReactNode;
   refreshControl?: React.ReactElement;
@@ -65,8 +60,7 @@ export function ScreenScroll({
 }) {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      {atmosphere ? <Atmosphere /> : null}
-      {floor !== false ? <FloorMark text={floor || 'SIDEQUEST'} /> : null}
+      <Atmosphere />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -78,7 +72,7 @@ export function ScreenScroll({
   );
 }
 
-/** Silver pill CTA — Damn Good / Dark gallery "Visit site" */
+/** Moon primary button — piccolo fill, goten label, i-sm radius */
 export function Button({
   label,
   onPress,
@@ -184,9 +178,9 @@ export function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: color.line, true: color.ink }}
-        thumbColor={color.surface}
-        ios_backgroundColor={color.line}
+        trackColor={{ false: color.beerus, true: color.piccolo }}
+        thumbColor={color.goten}
+        ios_backgroundColor={color.beerus}
       />
     </View>
   );
@@ -196,7 +190,7 @@ export function Field(props: TextInputProps) {
   return (
     <TextInput
       {...props}
-      placeholderTextColor={color.muted}
+      placeholderTextColor={color.trunks}
       style={[styles.input, props.style]}
     />
   );
@@ -205,8 +199,7 @@ export function Field(props: TextInputProps) {
 export function Loading() {
   return (
     <View style={styles.loading}>
-      <Atmosphere />
-      <ActivityIndicator color={color.ink} />
+      <ActivityIndicator color={color.piccolo} />
     </View>
   );
 }
@@ -240,7 +233,10 @@ export function QuestRow({
 export function Brand({ sticker }: { sticker?: StickerId; knockout?: boolean }) {
   return (
     <View style={styles.brand}>
-      <Text style={styles.brandWord}>SIDEQUEST</Text>
+      <View style={styles.logoMark}>
+        <Text style={styles.logoText}>mo•n</Text>
+      </View>
+      <Text style={styles.brandWord}>Sidequest</Text>
       {sticker ? <Sticker id={sticker} size="sm" /> : null}
     </View>
   );
@@ -249,7 +245,7 @@ export function Brand({ sticker }: { sticker?: StickerId; knockout?: boolean }) 
 export { Title, Body, Muted, Label, Display };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: color.bg },
+  safe: { flex: 1, backgroundColor: color.goku },
   inner: {
     flex: 1,
     paddingHorizontal: space[4],
@@ -268,54 +264,69 @@ const styles = StyleSheet.create({
     gap: space[2],
     marginBottom: space[5],
   },
+  logoMark: {
+    backgroundColor: color.gohan,
+    borderRadius: radius.sSm,
+    paddingHorizontal: space[2],
+    paddingVertical: space[1],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+  },
+  logoText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+    color: color.bulma,
+  },
   brandWord: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    letterSpacing: 1,
-    color: color.ink,
+    fontFamily: fonts.sansBold,
+    fontSize: 20,
+    letterSpacing: -0.4,
+    color: color.bulma,
   },
   panel: {
     width: '100%',
+    backgroundColor: color.gohan,
+    borderRadius: radius.sMd,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+    paddingHorizontal: space[3],
     marginVertical: space[4],
   },
   eyebrow: {
-    textAlign: 'center',
-    color: color.muted,
     marginBottom: space[2],
+    color: color.trunks,
   },
   button: {
-    backgroundColor: color.surface,
-    paddingVertical: 14,
-    paddingHorizontal: space[6],
+    backgroundColor: color.piccolo,
+    paddingVertical: 12,
+    paddingHorizontal: space[5],
     alignItems: 'center',
-    marginTop: space[4],
-    alignSelf: 'center',
-    borderRadius: poster.radius,
-    minWidth: 180,
+    marginTop: space[3],
+    alignSelf: 'stretch',
+    borderRadius: radius.iSm,
   },
   buttonPressed: {
-    backgroundColor: color.ink,
+    opacity: 0.88,
   },
   buttonLabel: {
     fontFamily: fonts.sansSemiBold,
-    fontSize: 13,
-    letterSpacing: 0.2,
-    color: color.onSurface,
+    fontSize: 14,
+    letterSpacing: 0,
+    color: color.goten,
   },
   ghost: {
     paddingVertical: space[3],
     alignItems: 'center',
     alignSelf: 'stretch',
+    borderRadius: radius.iSm,
   },
   ghostPressed: {
-    backgroundColor: color.floor,
+    backgroundColor: color.hit,
   },
   ghostLabel: {
     fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: color.ink,
+    fontSize: 14,
+    color: color.bulma,
     textAlign: 'center',
   },
   centerGhost: {
@@ -325,10 +336,8 @@ const styles = StyleSheet.create({
   },
   centerGhostLabel: {
     fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: color.muted,
+    fontSize: 14,
+    color: color.trunks,
   },
   chip: {
     flexDirection: 'row',
@@ -338,23 +347,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     marginHorizontal: space[1],
     marginBottom: space[2],
+    borderRadius: radius.full,
+    backgroundColor: color.hit,
   },
   chipOn: {
-    borderBottomWidth: 1,
-    borderBottomColor: color.ink,
+    backgroundColor: color.piccolo,
   },
   chipPressed: {
-    backgroundColor: color.floor,
+    opacity: 0.85,
   },
   chipLabel: {
     fontFamily: fonts.sansMedium,
     fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: color.muted,
+    color: color.bulma,
   },
   chipSelected: {
-    color: color.ink,
+    color: color.goten,
   },
   toggle: {
     flexDirection: 'row',
@@ -362,27 +370,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: space[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.line,
+    borderBottomColor: color.beerus,
   },
   toggleLabel: {
     fontFamily: fonts.sans,
     fontSize: typeScale.body.fontSize,
-    color: color.ink,
+    color: color.bulma,
   },
   input: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.line,
+    backgroundColor: color.gohan,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.beerus,
+    borderRadius: radius.iSm,
     paddingVertical: space[3],
+    paddingHorizontal: space[3],
     fontSize: typeScale.body.fontSize,
     fontFamily: fonts.sans,
-    color: color.ink,
+    color: color.bulma,
     marginVertical: space[2],
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: color.bg,
+    backgroundColor: color.goku,
   },
   quest: {
     flexDirection: 'row',
@@ -390,11 +401,11 @@ const styles = StyleSheet.create({
     gap: space[3],
     paddingVertical: space[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.line,
+    borderBottomColor: color.beerus,
   },
   questPressed: {
-    backgroundColor: color.floor,
+    backgroundColor: color.hit,
   },
   questText: { flex: 1, gap: space[1] },
-  disabled: { opacity: 0.35 },
+  disabled: { opacity: 0.4 },
 });

@@ -8,19 +8,18 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: color.bg,
-          borderTopColor: color.line,
+          backgroundColor: color.gohan,
+          borderTopColor: color.beerus,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 52,
+          height: 56,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: color.ink,
-        tabBarInactiveTintColor: color.muted,
+        tabBarActiveTintColor: color.piccolo,
+        tabBarInactiveTintColor: color.trunks,
         tabBarLabelStyle: {
           fontFamily: fonts.sansMedium,
-          fontSize: 10,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
+          fontSize: 11,
+          letterSpacing: 0.2,
         },
         tabBarIconStyle: { display: 'none' },
       }}

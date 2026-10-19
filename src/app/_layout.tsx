@@ -25,7 +25,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.bg }}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         {!hydrated ? (
           <Loading />
         ) : (
