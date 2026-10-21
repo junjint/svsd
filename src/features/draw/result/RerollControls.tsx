@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { feedback } from '@/services/sound';
 import { REROLLS_PER_STAGE } from '@/services/draw/rules';
-import { Glass, Text, color, radius } from '@/theme';
+import { Glass, Text, color } from '@/theme';
 import { SNAP } from '../motion';
 import { PressScale } from '../PressScale';
 
@@ -21,6 +22,19 @@ function useShake() {
     );
   };
   return { style, shake };
+}
+
+/** A circular arrow: one open loop with its head at the top right */
+function RefreshIcon({ size = 16, tint = color.ink }: { size?: number; tint?: string }) {
+  // the View keeps the icon stacked above Glass's blur layers on web (a bare svg paints beneath them)
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={tint} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <Path d="M20 4v4.5h-4.5" />
+      </Svg>
+    </View>
+  );
 }
 
 function RerollButton({
@@ -59,30 +73,13 @@ function RerollButton({
         style={!available && styles.off}
       >
         <Glass interactive style={styles.btn}>
+          <RefreshIcon tint={available ? color.ink : color.ink3} />
           <Text style={[styles.name, !available && { color: color.ink3 }]} numberOfLines={1}>
             {name}
           </Text>
-          <View style={[styles.count, !available && styles.countOff]}>
-            <Text style={styles.sub}>{sub}</Text>
-          </View>
         </Glass>
       </PressScale>
     </Animated.View>
-  );
-}
-
-/** A padlock drawn in two pieces so the shackle can spring open */
-function Padlock({ locked }: { locked: boolean }) {
-  const t = useDerivedValue(() => withSpring(locked ? 0 : 1, SNAP), [locked]);
-  const shackle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -3 * t.value }, { translateX: 3 * t.value }, { rotate: `${18 * t.value}deg` }],
-  }));
-  const tint = locked ? color.white : color.ink2;
-  return (
-    <View style={styles.lock}>
-      <Animated.View style={[styles.shackle, { borderColor: tint }, shackle]} />
-      <View style={[styles.body, { backgroundColor: tint }]} />
-    </View>
   );
 }
 
@@ -90,31 +87,14 @@ export function RerollControls({
   rerolls,
   locked,
   onReroll,
-  onToggleLock,
 }: {
   rerolls: { place: number; activity: number };
   locked: boolean;
   onReroll: (stage: Stage) => void;
-  onToggleLock: () => void;
 }) {
   return (
     <View style={styles.row}>
       <RerollButton stage="place" used={rerolls.place} locked={locked} onReroll={() => onReroll('place')} />
-      <PressScale
-        onPress={() => {
-          feedback('lockPlace');
-          onToggleLock();
-        }}
-        scaleTo={0.9}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: locked }}
-        accessibilityLabel={locked ? 'Place locked' : 'Lock place'}
-        accessibilityHint="Keeps this place while you reroll the activity"
-      >
-        <Glass tone={locked ? 'ink' : 'clear'} interactive style={styles.lockBtn}>
-          <Padlock locked={locked} />
-        </Glass>
-      </PressScale>
       <RerollButton stage="activity" used={rerolls.activity} onReroll={() => onReroll('activity')} />
     </View>
   );
@@ -132,11 +112,4 @@ const styles = StyleSheet.create({
   },
   off: { opacity: 0.55 },
   name: { fontSize: 14, fontWeight: '600', color: color.ink },
-  count: { height: 20, paddingHorizontal: 7, borderRadius: radius.pill, backgroundColor: 'rgba(21,16,14,0.06)', justifyContent: 'center' },
-  countOff: { backgroundColor: 'transparent' },
-  sub: { fontSize: 11, fontWeight: '600', color: color.ink2, fontVariant: ['tabular-nums'] },
-  lockBtn: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-  lock: { width: 18, height: 22, alignItems: 'center', justifyContent: 'flex-end' },
-  shackle: { position: 'absolute', top: 0, width: 12, height: 13, borderWidth: 2.2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6 },
-  body: { width: 18, height: 12, borderRadius: 3.5 },
 });

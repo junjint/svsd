@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text as RNText } from '@/theme';
 import type { ViewStyle } from 'react-native';
 import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from 'expo-router/js-tabs';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '@/services/sound';
 import { Frost, color, shadow } from '@/theme';
@@ -12,9 +12,12 @@ import { TAB_ICONS } from './TabIcons';
 
 /* Port of Bencho `tab-bar`: icon tabs on a floating frosted bar. The tab
    you pick opens to show its name, and ONE light tile slides under it on
-   a spring (a slide is one event; a fade would be two). Tab widths and
-   the tile ride the same spring, so the tile tracks the opening tab and
-   overshoots with it. */
+   a spring (a slide is one event; a fade would be two). A tab opens on
+   the block's 600ms ease-out while the tile chases it on its own spring,
+   so the tile overshoots the tab a touch and settles. */
+
+/* the name's fades use CSS `ease` */
+const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 const PAD = 5;
 const GAP = 2;
@@ -158,21 +161,30 @@ function Tab({
   icon: (tint: string) => React.ReactNode;
 }) {
   const w = useSharedValue(width);
-  const name = useSharedValue(focused ? 1 : 0);
+  const ink = useSharedValue(focused ? 1 : 0);
+  const slide = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
-    w.value = still ? width : withSpring(width, TILE);
+    w.value = still ? width : withTiming(width, OPEN_EASE);
   }, [width, still, w]);
 
-  /* the name slides out from behind the icon as the room opens; the
-     closing one goes at once */
+  /* the name slides out from behind the icon as the room opens: a beat
+     late, fading over 420ms while it travels 8px over 600ms. Closing, it
+     fades in 160ms and slides back over 420ms, both at once. */
   useEffect(() => {
-    if (still) name.value = focused ? 1 : 0;
-    else name.value = focused ? withDelay(120, withTiming(1, OPEN_EASE)) : withTiming(0, { duration: 140 });
-  }, [focused, still, name]);
+    if (still) {
+      ink.value = slide.value = focused ? 1 : 0;
+    } else if (focused) {
+      ink.value = withDelay(160, withTiming(1, { duration: 420, easing: CSS_EASE }));
+      slide.value = withDelay(160, withTiming(1, OPEN_EASE));
+    } else {
+      ink.value = withTiming(0, { duration: 160, easing: CSS_EASE });
+      slide.value = withTiming(0, { ...OPEN_EASE, duration: 420 });
+    }
+  }, [focused, still, ink, slide]);
 
   const box = useAnimatedStyle(() => ({ width: w.value }));
-  const word = useAnimatedStyle(() => ({ opacity: name.value, transform: [{ translateX: (1 - name.value) * -8 }] }));
+  const word = useAnimatedStyle(() => ({ opacity: ink.value, transform: [{ translateX: (1 - slide.value) * -8 }] }));
   const tint = focused ? color.cobalt : color.ink;
 
   return (

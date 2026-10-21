@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 import { Text as RNText } from '@/theme';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 import { create } from 'zustand';
@@ -34,6 +34,8 @@ const SHOWN = 3;
 const H = 48;
 const PEEK = 9;
 const GAP = 8;
+/* leaving: the block's 220ms cubic-bezier(.4,0,1,1), sliding 60 to the side */
+const OUT = { duration: 220, easing: Easing.bezier(0.4, 0, 1, 1) };
 
 interface ToastState {
   items: ToastItem[];
@@ -95,6 +97,7 @@ function ToastPill({ item, depth, open, onPress }: { item: ToastItem; depth: num
   const leave = useToasts((s) => s.leave);
   const remove = useToasts((s) => s.remove);
   const y = useSharedValue(-24);
+  const x = useSharedValue(0);
   const scale = useSharedValue(1);
   const alpha = useSharedValue(0);
 
@@ -117,13 +120,13 @@ function ToastPill({ item, depth, open, onPress }: { item: ToastItem; depth: num
     }
   }, [depth, open, item.leaving, still, y, scale, alpha]);
 
-  /* leaving: lift and fade, then drop out of the list */
+  /* leaving: slide aside and fade, then drop out of the list */
   useEffect(() => {
     if (!item.leaving) return;
     const done = () => remove(item.id);
-    alpha.value = withTiming(0, { duration: 200 }, (ok) => ok && scheduleOnRN(done));
-    if (!still) y.value = withTiming(y.value - 18, { duration: 220 });
-  }, [item.leaving, item.id, remove, still, alpha, y]);
+    alpha.value = withTiming(0, OUT, (ok) => ok && scheduleOnRN(done));
+    if (!still) x.value = withTiming(60, OUT);
+  }, [item.leaving, item.id, remove, still, alpha, x]);
 
   /* the front one's clock; a fanned-out stack holds still while you read */
   useEffect(() => {
@@ -134,7 +137,7 @@ function ToastPill({ item, depth, open, onPress }: { item: ToastItem; depth: num
 
   const style = useAnimatedStyle(() => ({
     opacity: alpha.value,
-    transform: [{ translateY: y.value }, { scale: scale.value }],
+    transform: [{ translateX: x.value }, { translateY: y.value }, { scale: scale.value }],
   }));
 
   const front = depth === 0;
@@ -152,6 +155,8 @@ function ToastPill({ item, depth, open, onPress }: { item: ToastItem; depth: num
         onPress={onPress}
       >
         <Frost intensity={50} style={[styles.pill, shadow.float]}>
+          {/* tucked behind, a toast is a 6% ink wash with its words hidden */}
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.tucked, { opacity: front || open ? 0 : 1 }]} />
           <View style={[styles.row, { opacity: front || open ? 1 : 0 }]}>
             {item.icon ? <RNText style={styles.icon}>{item.icon}</RNText> : dot ? <View style={[styles.dot, { backgroundColor: dot }]} /> : null}
             <RNText numberOfLines={1} style={styles.msg}>
@@ -168,6 +173,7 @@ const styles = StyleSheet.create({
   host: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 1000, elevation: 1000 },
   slot: { position: 'absolute', top: 0, width: 280, transformOrigin: 'top' },
   pill: { height: H, borderRadius: radius.pill, justifyContent: 'center', paddingHorizontal: space.xl },
+  tucked: { borderRadius: radius.pill, backgroundColor: 'rgba(21,16,14,0.06)' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   icon: { fontSize: 17 },
   dot: { width: 8, height: 8, borderRadius: 4 },

@@ -78,7 +78,9 @@ export function FrameModal({ visible = true, children, ...rest }: ModalProps & {
  */
 export function DeviceFrame({ children }: { children: ReactNode }) {
   const win = useWindowDimensions();
-  const framed = Platform.OS === 'web' && win.width >= FRAME_MIN_WIDTH;
+  // `?frame=off` shows the bare app on desktop too (handy for testing gestures)
+  const off = Platform.OS === 'web' && typeof location !== 'undefined' && /[?&]frame=off\b/.test(location.search);
+  const framed = Platform.OS === 'web' && win.width >= FRAME_MIN_WIDTH && !off;
   if (!framed) return <View style={styles.bare}>{children}</View>;
 
   // shrink to fit short windows; CSS zoom keeps pointer maths right for the scratch cards

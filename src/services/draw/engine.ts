@@ -158,7 +158,9 @@ export function buildDrawnQuest(args: {
   rerollsUsed: DrawnSidequest['rerollsUsed'];
   cityLabel: string;
 }): DrawnSidequest {
-  const { place, activity, settings } = args;
+  const { activity, settings } = args;
+  // demo listings carry a "[DEMO] " tag; the saved quest shows the name alone
+  const place = { ...args.place, name: args.place.name.replace(/^\[[^\]]*\]\s*/, '') };
   const now = new Date().toISOString();
   const d = Math.round(distanceMeters(args.location, place.coordinates));
   const text = settings.partySize > 1 && activity.groupText ? activity.groupText : activity.text;

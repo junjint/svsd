@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -9,6 +11,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { feedback } from '@/services/sound';
 import { Glass, Text as RNText, color } from '@/theme';
 
@@ -25,9 +28,17 @@ const SIZES = {
 } as const;
 
 const STAGGER = 45;
-/* bounce 45 → a lively but quick landing */
-const DIGIT = { stiffness: 210, damping: 17, mass: 1 };
+/* Bounce 45: the block steps vel += gap × 0.152, vel ×= 0.71 every frame.
+   As a continuous spring that is k = 0.152 × 60² and c = −ln(0.71) × 60 */
+const DIGIT = { stiffness: 547, damping: 20.6, mass: 1 };
 const MAX_PLACES = 5;
+/* a column further than this from home skips whole turns first */
+const FAR = 24;
+/* drag: one step per 12px of travel; a fling coasts, losing 6% a frame */
+const PX = 12;
+/* a column opening or closing: width 320ms cubic-bezier(.3,1.2,.4,1) */
+const COL_EASE = Easing.bezier(0.3, 1.2, 0.4, 1);
+const COL_EM = 0.64;
 
 export interface RollingCounterProps {
   value: number;
@@ -76,6 +87,57 @@ export function RollingCounter({ value, min = 0, max = 99, onChange, suffix, siz
     return true;
   };
 
+  /* ── drag the number up or down, and fling it ──────────── */
+  const drag = useRef({ last: 0, acc: 0 });
+  const fling = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(fling.current), []);
+  const steps = (acc: number) => {
+    const n = acc > 0 ? Math.floor(acc / PX) : Math.ceil(acc / PX);
+    if (n) bump(n);
+    return acc - n * PX;
+  };
+  const dragStart = () => {
+    cancelAnimationFrame(fling.current);
+    release();
+    drag.current = { last: 0, acc: 0 };
+  };
+  const dragMove = (ty: number) => {
+    const g = drag.current;
+    const dy = g.last - ty;
+    g.last = ty;
+    g.acc = steps(g.acc + dy);
+  };
+  const dragEnd = (vy: number) => {
+    if (still) return;
+    // px/s → px a frame, upward is more
+    let v = -vy / 60;
+    if (Math.abs(v) < 2) return;
+    let acc = drag.current.acc;
+    const coast = () => {
+      acc = steps(acc + v);
+      v *= 0.94;
+      if (Math.abs(v) > 0.4) fling.current = requestAnimationFrame(coast);
+    };
+    fling.current = requestAnimationFrame(coast);
+  };
+  const pan = usePanGesture({
+    enabled: !!onChange,
+    activeOffsetY: [-4, 4],
+    failOffsetX: [-16, 16],
+    onActivate: () => {
+      'worklet';
+      scheduleOnRN(dragStart);
+    },
+    onUpdate: (e) => {
+      'worklet';
+      scheduleOnRN(dragMove, e.translationY);
+    },
+    onDeactivate: (e) => {
+      'worklet';
+      scheduleOnRN(dragEnd, e.velocityY);
+    },
+  });
+
   const press = (dir: 1 | -1) => {
     release();
     if (!bump(dir)) return;
@@ -122,7 +184,9 @@ export function RollingCounter({ value, min = 0, max = 99, onChange, suffix, siz
     >
       <Glass radius={dims.cell / 2 + 4} style={styles.slab}>
         <Key glyph="−" label="Less" dims={dims} disabled={value <= min} onIn={() => press(-1)} onOut={release} />
-        <View style={{ paddingHorizontal: 10 }}>{digits}</View>
+        <GestureDetector gesture={pan}>
+          <View style={{ paddingHorizontal: 10 }}>{digits}</View>
+        </GestureDetector>
         <Key glyph="+" label="More" dims={dims} disabled={value >= max} onIn={() => press(1)} onOut={release} />
       </Glass>
     </View>
@@ -135,7 +199,7 @@ function Column({ place, value, visible, dims, still }: { place: number; value: 
   const count = Math.floor(Math.abs(value) / 10 ** place);
   const pos = useSharedValue(count);
   const target = useSharedValue(count);
-  const width = useSharedValue(visible ? dims.font * 0.62 : 0);
+  const width = useSharedValue(visible ? dims.font * COL_EM : 0);
 
   useEffect(() => {
     const delay = place * STAGGER;
@@ -147,17 +211,19 @@ function Column({ place, value, visible, dims, still }: { place: number; value: 
     /* a column far from home jumps most of the way in whole turns first —
        it looks the same, and a big change doesn't spin for a second */
     const gap = count - pos.value;
-    if (Math.abs(gap) > 12) pos.value += Math.round((gap - Math.sign(gap) * 12) / 10) * 10;
+    if (Math.abs(gap) > FAR) pos.value += Math.round((gap - Math.sign(gap) * FAR) / 10) * 10;
     target.value = withDelay(delay, withTiming(count, { duration: 0 }));
     pos.value = withDelay(delay, withSpring(count, DIGIT));
   }, [count, place, still, pos, target]);
 
+  const fade = useSharedValue(visible ? 1 : 0);
   useEffect(() => {
-    const w = visible ? dims.font * 0.62 : 0;
-    width.value = still ? w : withSpring(w, { stiffness: 300, damping: 22 });
-  }, [visible, dims.font, still, width]);
+    const w = visible ? dims.font * COL_EM : 0;
+    width.value = still ? w : withTiming(w, { duration: 320, easing: COL_EASE });
+    fade.value = still ? (visible ? 1 : 0) : withTiming(visible ? 1 : 0, { duration: 220, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
+  }, [visible, dims.font, still, width, fade]);
 
-  const box = useAnimatedStyle(() => ({ width: width.value, opacity: Math.min(1, width.value / (dims.font * 0.4)) }));
+  const box = useAnimatedStyle(() => ({ width: Math.max(0, width.value), opacity: fade.value }));
 
   return (
     <Animated.View style={[{ height: dims.cell, overflow: 'hidden' }, box]}>

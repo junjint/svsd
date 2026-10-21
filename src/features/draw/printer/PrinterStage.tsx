@@ -7,18 +7,30 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { feedback } from '@/services/sound';
 import type { DrawSession } from '@/stores/sidequestStore';
 import type { Coordinates } from '@/types';
 import { Printer, printerGeometry } from './Printer';
-import { Receipt } from './Receipt';
+import { IdleReceipt, Receipt } from './Receipt';
 
 /** Feed speed, points per second: one smooth, steady pull like the reference */
 const FEED_PPS = 190;
 const TICK_MS = 120;
 const SHADOW_ROOM = 18;
+
+/* The tear, after Bencho's Ticket: the receipt turns about the slot's
+   right corner, so the cut opens at the left and runs across, the
+   paper's joints letting go one by one. Free, it squishes, then drifts
+   down and away with a tilt as it fades, rather than dropping like a stone. */
+const PEEL_MS = 420;
+const PEEL_DEG = 9;
+const DRIFT_MS = 560;
+const DRIFT_DEG = 8;
+const JOINTS = 5;
 
 export interface PrinterStageHandle {
   /** Cut the receipt and let it drop away down the page; resolves when it's gone */
@@ -32,6 +44,8 @@ export const PrinterStage = forwardRef<
   {
     width: number;
     draw: DrawSession | null;
+    /** no sidequest out: leave the idle note on the printer instead */
+    idle: boolean;
     from: Coordinates;
     cityLabel: string;
     instant: boolean;
@@ -39,26 +53,38 @@ export const PrinterStage = forwardRef<
     onPress: () => void;
     onPrinted: () => void;
   }
->(function PrinterStage({ width, draw, from, cityLabel, instant, disabled, onPress, onPrinted }, ref) {
+>(function PrinterStage({ width, draw, idle, from, cityLabel, instant, disabled, onPress, onPrinted }, ref) {
   const g = printerGeometry(width);
   const ready = !!draw?.place && !!draw.activity;
-  const key = ready ? `${draw!.id}:${draw!.place!.id}:${draw!.activity!.id}` : null;
+  const key = ready ? `${draw!.id}:${draw!.place!.id}:${draw!.activity!.id}` : idle ? 'idle' : null;
   const [paperH, setPaperH] = useState(0);
   const tearing = useRef<(() => void) | null>(null);
-  const torn = useSharedValue(0);
+  const ticks = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const peel = useSharedValue(0);
+  const drift = useSharedValue(0);
+  const squish = useSharedValue(0);
 
   useImperativeHandle(ref, () => ({
     tear: () =>
       new Promise<void>((resolve) => {
         if (!key) return resolve();
-        feedback('sheetClose');
         tearing.current = resolve;
-        torn.value = withTiming(1, { duration: 620, easing: Easing.in(Easing.quad) }, (done) => {
-          if (done) runOnJS(finishTear)();
+        // the peel eases in, so joint i lets go at sqrt(i / JOINTS) of it
+        ticks.current = Array.from({ length: JOINTS }, (_, i) =>
+          setTimeout(() => feedback('scratchTick'), PEEL_MS * Math.sqrt((i + 1) / JOINTS))
+        );
+        peel.value = withTiming(1, { duration: PEEL_MS, easing: Easing.in(Easing.quad) }, (done) => {
+          if (!done) return;
+          runOnJS(feedback)('sheetClose');
+          squish.value = withSequence(withTiming(1, { duration: 70 }), withSpring(0, { damping: 9, stiffness: 320 }));
+          drift.value = withTiming(1, { duration: DRIFT_MS, easing: Easing.out(Easing.cubic) }, (gone) => {
+            if (gone) runOnJS(finishTear)();
+          });
         });
       }),
     restore: () => {
-      torn.value = withTiming(0, { duration: 200 });
+      peel.value = withTiming(0, { duration: 200 });
+      drift.value = withTiming(0, { duration: 200 });
     },
   }));
 
@@ -67,16 +93,26 @@ export const PrinterStage = forwardRef<
     tearing.current = null;
   }
 
+  useEffect(() => () => ticks.current.forEach(clearTimeout), []);
+
   // a fresh receipt starts whole again
   useEffect(() => {
-    torn.value = 0;
+    peel.value = 0;
+    drift.value = 0;
+    squish.value = 0;
     setPaperH(0);
-  }, [key, torn]);
+  }, [key, peel, drift, squish]);
 
-  // cut free, it drops straight down and out of sight, picking up speed
   const tearStyle = useAnimatedStyle(() => ({
-    opacity: torn.value > 0.85 ? (1 - torn.value) / 0.15 : 1,
-    transform: [{ translateY: torn.value * 900 }],
+    opacity: 1 - drift.value,
+    transformOrigin: 'right top',
+    transform: [
+      { translateX: -28 * drift.value },
+      { translateY: 140 * drift.value },
+      { rotate: `${-(PEEL_DEG * peel.value + DRIFT_DEG * drift.value)}deg` },
+      { scaleX: 1 + 0.035 * squish.value },
+      { scaleY: 1 - 0.035 * squish.value },
+    ],
   }));
 
   const stageH = key && paperH ? Math.max(g.height, g.paperTop + paperH + 12) : g.height;
@@ -98,8 +134,8 @@ export const PrinterStage = forwardRef<
           pointerEvents="box-none"
           style={[{ position: 'absolute', top: g.paperTop, left: (width - g.paperWidth) / 2, width: g.paperWidth }, tearStyle]}
         >
-          <Feed key={key} instant={instant} onMeasured={setPaperH} onPrinted={onPrinted}>
-            <Receipt draw={draw!} from={from} cityLabel={cityLabel} width={g.paperWidth} />
+          <Feed key={key} instant={instant} onMeasured={setPaperH} onPrinted={ready ? onPrinted : noop}>
+            {ready ? <Receipt draw={draw!} from={from} cityLabel={cityLabel} width={g.paperWidth} /> : <IdleReceipt width={g.paperWidth} />}
           </Feed>
           {/* where the paper leaves the slot it's still in shadow */}
           <LinearGradient pointerEvents="none" colors={['rgba(5,5,5,0.55)', 'rgba(5,5,5,0)']} style={styles.slotShade} />
@@ -108,6 +144,8 @@ export const PrinterStage = forwardRef<
     </View>
   );
 });
+
+const noop = () => {};
 
 /** Clips the paper at the slot and feeds it out in printer-like steps */
 function Feed({

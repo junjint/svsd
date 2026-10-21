@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text as RNText } from '@/theme';
 import { GestureDetector, useExclusiveGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -22,7 +23,9 @@ import { RADIUS_PRESETS, RADIUS_STOPS, indexAt, radiusParts, stopIndex, usesMile
 
 const COUNT = RADIUS_STOPS.length;
 const ROW_H = 76;
-const TICK_EASE = { duration: 420 };
+/* the block's `height 420ms cubic-bezier(.22,1,.36,1)` and `background 160ms ease` */
+const TICK_EASE = { duration: 420, easing: Easing.bezier(0.22, 1, 0.36, 1) };
+const INK_EASE = { duration: 160, easing: Easing.bezier(0.25, 0.1, 0.25, 1) };
 
 export interface RadiusPickerProps {
   /** miles */
@@ -183,17 +186,19 @@ export function RadiusPicker({ value, onChange, onCommit }: RadiusPickerProps) {
   );
 }
 
-/** a tick: taller and inked once it is inside the radius, cobalt under the finger */
+/** a tick: taller and inked once it is inside the radius. The block marks the
+    one under the finger in its accent; the app has none, so it lifts to grey
+    out of the ink around it */
 function Tick({ i, idx, scrubbing, still }: { i: number; idx: SharedValue<number>; scrubbing: SharedValue<number>; still: boolean }) {
   const base = 0.52 + Math.sin(i / 3.1) * 0.14;
   const style = useAnimatedStyle(() => {
     const on = i <= idx.value;
     const cursor = scrubbing.value === 1 && i === idx.value;
     const h = (on ? Math.min(1, base + 0.26) : base) * ROW_H;
-    const bg = cursor ? color.cobalt : on ? color.ink : 'rgba(17,17,20,0.12)';
+    const bg = cursor ? color.ink2 : on ? color.ink : 'rgba(17,17,20,0.12)';
     return {
       height: still ? h : withTiming(h, TICK_EASE),
-      backgroundColor: still ? bg : withTiming(bg, { duration: 160 }),
+      backgroundColor: still ? bg : withTiming(bg, INK_EASE),
     };
   });
   return <Animated.View style={[styles.tick, style]} />;

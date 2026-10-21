@@ -80,7 +80,9 @@ This build drops the current Moon / DM Sans system in `src/design/` entirely. It
 > - **Print a sidequest** (or tapping the printer) feeds a receipt out of the slot in one smooth, steady pull, footer first (after Rebecca's reference video). The paper lies over the printer's front. Tear off, ✕ and reprints cut the receipt and drop it off the bottom of the page.
 > - The receipt is Space Mono "thermal ink", warm near-black with a slight bleed. A generated crinkle map multiplies over the paper and an ink-dropout map (specks, faint head banding) screens over it (`assets/receipt/`).
 > - It reads only what's needed: logo, city and date, the place with its walk time, and the activity in large type. Nothing that tells people how to do it (no type, rarity, cost or time).
-> - Under it: **Reprint** place or activity (2 each, lock place), **Slide to go**, **Save for later**, and **Tear off**. A glass ✕ floats top right while a receipt is out. Reprints tear the receipt away and print a new one. Legendary still bursts confetti.
+> - Under it: **Reprint** place or activity (2 each, lock place), **Slide to go**, **Save for later**, and **Tear off**. A glass ✕ floats top right while a receipt is out.
+> - **Slide to go** (demo flow, 2026-10-21) skips the in-progress screen: it files the sidequest straight into a new folder and opens its page, where people add photos or delete it ("Delete this sidequest" removes the folder and the quest).
+> - **Folders:** a tap opens the sidequest's page; press and hold (hover on the web) fans the photos out. Folders use Bencho's Blue/Pink/Lilac plus Mint/Peach, cycling so neighbours differ. Reprints tear the receipt away and print a new one. Legendary still bursts confetti.
 > - The sections below describe the earlier deck version and are kept for history.
 
 ### 3.1 Home = the Draw screen

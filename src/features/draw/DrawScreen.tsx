@@ -7,7 +7,7 @@ import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Close } from '@/features/folders/icons';
 import { GlassIconButton, Paper, PillButton, Text, space } from '@/theme';
-import { showToast, useScreen, useTabBarSpace } from '@/ui';
+import { Sheet, showToast, useScreen, useTabBarSpace } from '@/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CityLine } from './home/CityLine';
 import { EmptyState } from './home/EmptyState';
@@ -23,8 +23,9 @@ const PRINTED_PHASES = new Set(['shuffling', 'place', 'activity', 'result']);
 const celebrated = new Set<string>();
 
 /**
- * Home = the Draw (SPEC §3.1), as a receipt printer. One CTA: Print. The
- * sidequest feeds out of the slot on a receipt; under it, reprint a line,
+ * Home = the Draw (SPEC §3.1), as a receipt printer. One CTA: New sidequest,
+ * which opens a sheet of settings (type, solo or with others) ending in Print.
+ * The sidequest feeds out of the slot on a receipt; under it, reprint a line,
  * slide to go, save it, or tear it off.
  */
 export function DrawScreen() {
@@ -43,6 +44,9 @@ export function DrawScreen() {
   const [printed, setPrinted] = useState(false);
   const [confetti, setConfetti] = useState(false);
   const [radiusOpen, setRadiusOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  /* the idle note prints on arrival and tears off when a sidequest prints */
+  const [idleOut, setIdleOut] = useState(true);
   const { width } = useScreen();
   const tabSpace = useTabBarSpace();
   const { bottom: bottomInset, top: topInset } = useSafeAreaInsets();
@@ -61,6 +65,7 @@ export function DrawScreen() {
     setPrinting(true);
     try {
       await printer.current?.tear();
+      setIdleOut(false);
       discardDraw();
       const session = await startDraw();
       if (session.phase !== 'empty') setPhase('result');
@@ -69,6 +74,12 @@ export function DrawScreen() {
       busy.current = false;
     }
   }, [discardDraw, startDraw, setPhase]);
+
+  /* let the sheet finish leaving so the printer is in view when it starts */
+  const printFromSheet = () => {
+    setSetupOpen(false);
+    setTimeout(() => void print(), 260);
+  };
 
   const onPrinted = useCallback(() => {
     setPrinting(false);
@@ -109,17 +120,19 @@ export function DrawScreen() {
       await printer.current?.tear();
       discardDraw();
       setPrinted(false);
+      setIdleOut(true);
       scroll.current?.scrollTo({ y: 0, animated: true });
     } finally {
       busy.current = false;
     }
   };
 
-  // a draw that ended elsewhere (Go, Save, reset) leaves the printer empty
+  // a draw that ended elsewhere (Go, Save, reset) leaves the idle note out again
   useEffect(() => {
-    if (!draw) {
+    if (!draw && !busy.current) {
       setPrinted(false);
       setPrinting(false);
+      setIdleOut(true);
     }
   }, [draw]);
 
@@ -148,18 +161,19 @@ export function DrawScreen() {
                 ref={printer}
                 width={printerW}
                 draw={onPaper ? draw : null}
+                idle={idleOut && !onPaper && !empty}
                 from={location.coords}
                 cityLabel={location.cityLabel}
                 instant={alwaysSkip}
                 disabled={printing || onPaper || empty}
-                onPress={() => void print()}
+                onPress={() => setSetupOpen(true)}
                 onPrinted={onPrinted}
               />
             </View>
-            {!onPaper && !empty && (
+            {printing && !onPaper && (
               <Animated.View entering={FadeIn} exiting={FadeOut.duration(120)}>
                 <Text variant="caption" style={styles.hint}>
-                  {printing ? 'Printing…' : 'Tap the printer or hit print'}
+                  Printing…
                 </Text>
               </Animated.View>
             )}
@@ -171,15 +185,13 @@ export function DrawScreen() {
           </View>
 
           {onPaper && draw && printed && (
-            <ReceiptActions draw={draw} width={Math.min(width - 40, 360)} onReprint={(s) => void reprint(s)} onTearOff={() => void tearOff()} />
+            <ReceiptActions draw={draw} width={Math.min(width - 40, 360)} onReprint={(s) => void reprint(s)} />
           )}
 
           {!onPaper && <View style={{ flex: 1 }} />}
           {!onPaper && (
             <Animated.View entering={FadeIn} exiting={FadeOut.duration(120)} style={styles.controls}>
-              <QuestTypeChips />
-              <PartyControl />
-              <PillButton label={printing ? 'Printing…' : 'Print a sidequest'} disabled={printing || empty} onPress={() => void print()} style={styles.cta} sound={null} />
+              <PillButton label="New sidequest" disabled={printing || empty} onPress={() => setSetupOpen(true)} style={styles.cta} sound={null} />
             </Animated.View>
           )}
         </ScrollView>
@@ -195,6 +207,14 @@ export function DrawScreen() {
       )}
       <ConfettiBurst fire={confetti} onDone={() => setConfetti(false)} />
       <RadiusSheet visible={radiusOpen} onClose={() => setRadiusOpen(false)} />
+      <Sheet visible={setupOpen} onClose={() => setSetupOpen(false)} title="New sidequest">
+        {/* the chips carry their own gutter for the home screen; the sheet already has one */}
+        <View style={styles.sheetChips}>
+          <QuestTypeChips />
+        </View>
+        <PartyControl />
+        <PillButton label="Print a sidequest" onPress={printFromSheet} sound={null} />
+      </Sheet>
     </View>
   );
 }
@@ -208,4 +228,5 @@ const styles = StyleSheet.create({
   emptyWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   controls: { gap: space.md, paddingBottom: space.lg },
   cta: { marginHorizontal: space.xl },
+  sheetChips: { marginHorizontal: -20 },
 });

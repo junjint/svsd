@@ -95,6 +95,22 @@ export function Receipt({
   );
 }
 
+/** The idle note the printer leaves out on the home screen: one line, nothing else */
+export function IdleReceipt({ width }: { width: number }) {
+  return (
+    <View style={[styles.paper, { width }]} accessible accessibilityLabel="Surprises come when you least expect it">
+      <View style={[styles.pad, styles.idlePad]}>
+        <Ink bold style={[styles.center, styles.idle]}>
+          SURPRISES COME WHEN YOU LEAST EXPECT IT
+        </Ink>
+      </View>
+      <Image source={CRINKLE} contentFit="cover" style={[StyleSheet.absoluteFill, { mixBlendMode: 'multiply' }]} pointerEvents="none" />
+      <Image source={INK_DROPOUT} contentFit="cover" style={[StyleSheet.absoluteFill, { mixBlendMode: 'screen', opacity: 0.55 }]} pointerEvents="none" />
+      <Teeth width={width} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   paper: { backgroundColor: PAPER, overflow: 'visible' },
   pad: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 18, gap: 5 },
@@ -116,6 +132,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 9.5, lineHeight: 13, marginTop: 2 },
   place: { fontSize: 16, lineHeight: 20, letterSpacing: -0.2 },
   activity: { letterSpacing: -0.4, marginVertical: 2 },
+  idlePad: { paddingTop: 26, paddingBottom: 28 },
+  idle: { fontSize: 20, lineHeight: 24, letterSpacing: -0.3 },
   logo: { width: 74, height: 34, alignSelf: 'center', marginBottom: 2 },
   teeth: { position: 'absolute', bottom: -5, left: 0, height: 5, overflow: 'hidden' },
   tooth: { position: 'absolute', top: -5, width: 9, height: 9, backgroundColor: PAPER, transform: [{ rotate: '45deg' }] },

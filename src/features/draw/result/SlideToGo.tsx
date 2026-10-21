@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   interpolate,
   useAnimatedStyle,
   useDerivedValue,
@@ -14,14 +16,21 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { feedback } from '@/services/sound';
 import { Glass, Text, color, radius } from '@/theme';
-import { CRITICAL, wait } from '../motion';
+import { wait } from '../motion';
 
-const H = 60;
-const PAD = 5;
+/* Bencho's geometry: a 56 track with a 4px inset, so the grip is a 48 circle */
+const H = 56;
+const PAD = 4;
 const GRIP = H - PAD * 2;
+/* Speed 50 (the block's default): k = 260 + 0.5 × 640, damped exactly on
+   critical so the commit lands against the wall without overshooting */
+const STIFF = 580;
+const COMMIT = { stiffness: STIFF, damping: 2 * Math.sqrt(STIFF * 0.9), mass: 0.9 };
 /* the return is 0.62 of critical: it lands with something left over,
    and the overshoot is spent as a squash against the wall */
-const HOME = { ...CRITICAL, damping: CRITICAL.damping * 0.62 };
+const HOME = { ...COMMIT, damping: COMMIT.damping * 0.62 };
+/* the settle's curve, and the word's: cubic-bezier(.33,.55,.2,1) */
+const SETTLE_EASE = Easing.bezier(0.33, 0.55, 0.2, 1);
 
 const clamp = (v: number, lo: number, hi: number) => {
   'worklet';
@@ -52,6 +61,15 @@ export function SlideToGo({
   const anchor = useSharedValue(0);
   const done = useSharedValue(0);
   const pulse = useSharedValue(1);
+  /* the block divides the finger by the scale it is drawn at. On web the
+     app sits in a zoomed phone frame, so a screen pixel is not a layout
+     pixel and the handle would never reach the end of its track */
+  const scale = useSharedValue(1);
+  const measure = (e: { currentTarget: unknown }) => {
+    if (Platform.OS !== 'web') return;
+    const el = e.currentTarget as unknown as HTMLElement;
+    scale.value = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+  };
 
   const reset = useCallback(() => {
     done.value = 0;
@@ -69,8 +87,13 @@ export function SlideToGo({
     'worklet';
     done.value = 1;
     anchor.value = x.value;
-    x.value = withSpring(0, CRITICAL);
-    pulse.value = withDelay(100, withSequence(withTiming(0.974, { duration: 260 }), withTiming(1, { duration: 160 })));
+    x.value = withSpring(0, COMMIT);
+    /* a 2.6% dip a beat behind the unfurl, peaking late (0.62 of 420ms),
+       so the block gathers as it lands */
+    pulse.value = withDelay(
+      100,
+      withSequence(withTiming(0.974, { duration: 260, easing: SETTLE_EASE }), withTiming(1, { duration: 160, easing: SETTLE_EASE })),
+    );
     scheduleOnRN(confirmed);
   };
 
@@ -84,12 +107,13 @@ export function SlideToGo({
     onUpdate: (e) => {
       'worklet';
       if (done.value) return;
-      x.value = clamp(start.value + e.translationX, 0, travel);
+      x.value = clamp(start.value + e.translationX / scale.value, 0, travel);
     },
     onDeactivate: () => {
       'worklet';
       if (done.value) return;
-      if (x.value >= travel - 3) commit();
+      // only the end of the track commits
+      if (x.value >= travel - 0.5) commit();
       else x.value = withSpring(0, HOME);
     },
   });
@@ -111,8 +135,8 @@ export function SlideToGo({
     opacity: shown.value * clamp(1 - (seen.value - travel * 0.55) / (travel * 0.4), 0, 1),
   }));
   const doneStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(done.value, { duration: 160 }),
-    transform: [{ scale: withSpring(done.value ? 1 : 0.7, { damping: 16, stiffness: 260 }) }],
+    opacity: withTiming(done.value, { duration: 160, easing: SETTLE_EASE }),
+    transform: [{ scale: withTiming(done.value ? 1 : 0.7, { duration: 160, easing: SETTLE_EASE }) }],
   }));
 
   return (
@@ -129,9 +153,10 @@ export function SlideToGo({
           done.value = 1;
           anchor.value = travel;
           x.value = travel;
-          x.value = withSpring(0, CRITICAL);
+          x.value = withSpring(0, COMMIT);
           void confirmed();
         }}
+        onPointerDown={measure}
         style={[styles.track, { width }, trackStyle]}
       >
         <Glass style={StyleSheet.absoluteFill} />
@@ -141,10 +166,10 @@ export function SlideToGo({
         </Animated.View>
         <Animated.View style={[styles.grip, gripStyle]}>
           <Animated.View style={[styles.fill, arrowStyle]} pointerEvents="none">
-            <Text style={styles.arrow}>→</Text>
+            <ArrowRight />
           </Animated.View>
           <Animated.View style={[styles.fill, styles.doneRow, doneStyle]} pointerEvents="none">
-            <Text style={styles.doneText}>✓</Text>
+            <Check />
             <Text style={styles.doneText}>{doneLabel}</Text>
           </Animated.View>
         </Animated.View>
@@ -153,12 +178,29 @@ export function SlideToGo({
   );
 }
 
+/* lucide's arrow-right and check at 20 / stroke 2, as the block draws them */
+function ArrowRight() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color.white} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M5 12h14M12 5l7 7-7 7" />
+    </Svg>
+  );
+}
+
+function Check() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color.white} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M20 6 9 17l-5-5" />
+    </Svg>
+  );
+}
+
 const styles = StyleSheet.create({
   track: { height: H, borderRadius: radius.pill, alignSelf: 'center' },
   // the ground already covered is the handle's own body, so it wipes the label
   wash: { position: 'absolute', left: PAD, top: PAD, bottom: PAD, borderRadius: GRIP / 2, backgroundColor: color.cobalt, zIndex: 1 },
   say: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-  sayText: { fontSize: 15, fontWeight: '500', color: color.ink2, letterSpacing: -0.1 },
+  sayText: { fontSize: 14, fontWeight: '500', color: color.ink2, letterSpacing: -0.14 },
   grip: {
     position: 'absolute',
     left: PAD,
@@ -172,8 +214,7 @@ const styles = StyleSheet.create({
   },
   fill: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   doneRow: { flexDirection: 'row', gap: 8 },
-  arrow: { fontSize: 22, fontWeight: '600', color: color.white, marginTop: -2 },
-  doneText: { fontSize: 16, fontWeight: '600', color: color.white },
+  doneText: { fontSize: 14, fontWeight: '500', color: color.white, letterSpacing: -0.14 },
 });
 
 export const SLIDE_HEIGHT = H;

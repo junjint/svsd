@@ -1,11 +1,12 @@
 import { StyleSheet, View } from 'react-native';
-import { Text, TornPaper, color, fonts, receiptInk, space } from '@/theme';
+import { Image } from 'expo-image';
+import { Text, TornPaper, color, receiptInk, space } from '@/theme';
 import type { BadgeDef } from '@/data/badges';
 import type { EarnedBadge } from '@/types';
 import { Lock } from '@/features/folders/icons';
 import { shortDate } from '@/features/folders/format';
 
-/* A trophy-case tile: a torn receipt stub. Earned: the glyph inked in serif,
+/* A trophy-case tile: a torn receipt stub. Earned: the chrome badge art,
    the name, the day. Locked: the same stub, faded, with a lock. */
 
 export function BadgeCard({ badge, earned, width, big = false }: { badge: BadgeDef; earned?: EarnedBadge; width: number; big?: boolean }) {
@@ -19,9 +20,12 @@ export function BadgeCard({ badge, earned, width, big = false }: { badge: BadgeD
     >
       <TornPaper seed={`badge-${badge.id}`} contentStyle={[styles.face, { minHeight: height, padding: big ? space.xl : space.sm }]}>
         <View>
-          <Text style={{ fontFamily: fonts.serif, fontSize: width * (big ? 0.3 : 0.32), lineHeight: width * (big ? 0.36 : 0.38), color: earned ? color.ink : color.ink3 }}>
-            {badge.glyph}
-          </Text>
+          <Image
+            source={badge.art}
+            style={{ width: width * (big ? 0.5 : 0.56), aspectRatio: 1 }}
+            contentFit="contain"
+            accessible={false}
+          />
           {!earned && (
             <View style={styles.lockPin}>
               <Lock size={9} />
