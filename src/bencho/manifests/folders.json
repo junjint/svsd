@@ -1,0 +1,23 @@
+{
+  "$comment": "Folders & Profile designer's Bencho blocks. All are Port mode: rebuilt natively in Reanimated from the block's motion, so no block source is vendored and `files` is empty.",
+  "blocks": {
+    "folder": {
+      "name": "Folder",
+      "files": [],
+      "mode": "port",
+      "usedIn": "src/features/folders/FolderTile.tsx"
+    },
+    "text-blur": {
+      "name": "TextReveal",
+      "files": [],
+      "mode": "port",
+      "usedIn": "src/features/folders/viewer/ScrubTitle.tsx"
+    },
+    "image-shimmer": {
+      "name": "ImageShimmer",
+      "files": [],
+      "mode": "port",
+      "usedIn": "src/features/folders/Shimmer.tsx"
+    }
+  }
+}

@@ -1,59 +1,44 @@
 import { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAppStore } from '@/stores/appStore';
-import { addNotificationResponseListener } from '@/services/notifications/notifications';
-import { ThemeProvider, color, fonts, Loading } from '@/design';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { initSounds } from '@/services/sound';
+import { useSidequestStore } from '@/stores/sidequestStore';
+import { DeviceFrame, ToastHost } from '@/ui';
+import { ThemeProvider, color } from '@/theme';
 
 export default function RootLayout() {
-  const hydrate = useAppStore((s) => s.hydrate);
-  const hydrated = useAppStore((s) => s.hydrated);
-  const router = useRouter();
+  const hydrate = useSidequestStore((s) => s.hydrate);
+  const hydrated = useSidequestStore((s) => s.hydrated);
 
   useEffect(() => {
+    void initSounds();
     void hydrate();
   }, [hydrate]);
 
-  useEffect(() => {
-    const sub = addNotificationResponseListener((sidequestId) => {
-      router.push(`/quest/${sidequestId}`);
-    });
-    return () => sub.remove();
-  }, [router]);
-
   return (
-    <ThemeProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.bg }}>
-        <StatusBar style="dark" />
-        {!hydrated ? (
-          <Loading />
-        ) : (
-          <Stack
-            screenOptions={{
-              headerShown: true,
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: color.bg },
-              headerTitleStyle: {
-                fontFamily: fonts.sansMedium,
-                fontSize: 15,
-                color: color.ink,
-              },
-              headerTintColor: color.ink,
-              headerBackTitle: '',
-              contentStyle: { backgroundColor: color.bg },
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="quest/[id]" options={{ title: '' }} />
-            <Stack.Screen name="quest/active" options={{ title: '' }} />
-            <Stack.Screen name="quest/complete" options={{ title: '' }} />
-            <Stack.Screen name="demo" options={{ title: 'Demo' }} />
-          </Stack>
-        )}
-      </GestureHandlerRootView>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.paper }}>
+          {/* Desktop web shows the app inside an iPhone, like the Forum prototype */}
+          <DeviceFrame>
+          <StatusBar style="dark" />
+          {hydrated && (
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.paper } }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="quest/[id]" />
+              <Stack.Screen name="folder/[id]" />
+              <Stack.Screen name="gallery/[id]" />
+              <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+            </Stack>
+          )}
+          {hydrated && <ToastHost />}
+          </DeviceFrame>
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

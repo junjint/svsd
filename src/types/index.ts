@@ -83,6 +83,8 @@ export interface Place {
   verificationStatus?: 'verified' | 'unverified' | 'editorial';
   attribution?: string;
   accessibilityNotes?: string;
+  /** Optional hero photo; reveals fall back to a typographic card without one */
+  photoUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -268,4 +270,128 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
 export const ANN_ARBOR_CENTER: Coordinates = {
   latitude: 42.2808,
   longitude: -83.743,
+};
+
+/* ── Sidequest v2: the Draw (docs/SPEC.md §3, §7) ───────────────── */
+
+export type QuestType = 'meal' | 'snack' | 'nature' | 'focus' | 'random';
+export type FocusSetting = 'indoor' | 'outdoor' | 'any';
+export type Rarity = 'common' | 'rare' | 'legendary';
+export type CostTier = 0 | 1 | 2 | 3;
+/** How a stage is revealed. scratch is the default for both stages */
+export type RevealStyle = 'scratch' | 'peel' | 'cards' | 'coin' | 'wheel';
+export type DrawStage = 'place' | 'activity';
+
+export interface Activity {
+  id: string;
+  /** Imperative, sentence case, no trailing period: "Feed the pigeons" */
+  text: string;
+  questTypes: Exclude<QuestType, 'random'>[];
+  /** Matched against Place.category and Place.tags */
+  placeTags: string[];
+  minParty: number;
+  maxParty: number;
+  rarity: Rarity;
+  durationMin: number;
+  costTier: CostTier;
+  indoorOutdoor: FocusSetting;
+  /** Copy used when party > 1, e.g. "Each pick a pigeon and name it" */
+  groupText?: string;
+  source: 'seed' | 'user';
+  cityId?: string;
+}
+
+export interface DrawSettings {
+  questType: QuestType;
+  focus: FocusSetting;
+  partySize: number;
+  radiusMiles: number;
+}
+
+/** Fields added to a Sidequest once it comes from the Draw */
+export interface DrawnQuestFields {
+  activityId: string;
+  activityText: string;
+  partySize: number;
+  questType: QuestType;
+  rarity: Rarity;
+  rerollsUsed: { place: number; activity: number };
+  revealStyle: { place: RevealStyle; activity: RevealStyle };
+  cityLabel: string;
+  placePhotoUrl?: string;
+}
+
+export type DrawnSidequest = Sidequest & DrawnQuestFields;
+
+export interface FolderPhoto {
+  id: string;
+  uri: string;
+  width?: number;
+  height?: number;
+  addedAt: string;
+}
+
+export interface QuestFolder {
+  id: string;
+  kind: 'quest' | 'freeform';
+  sidequestId?: string;
+  title: string;
+  subtitle?: string;
+  photos: FolderPhoto[];
+  note?: string;
+  mood?: Mood;
+  rating?: number;
+  savedToGallery: boolean;
+  postedToWall: boolean;
+  createdBy: 'completion' | 'user';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BadgeId =
+  | 'first_sidequest'
+  | 'seasoned_sidequester'
+  | 'main_character'
+  | 'globetrotter'
+  | 'squad_up'
+  | 'lone_wolf'
+  | 'lucky_draw'
+  | 'no_rerolls'
+  | 'local_legend'
+  | 'touch_grass';
+
+export interface EarnedBadge {
+  id: BadgeId;
+  earnedAt: string;
+  sidequestId?: string;
+}
+
+export interface V2Preferences extends DrawSettings {
+  confirmedCity?: string;
+  soundsEnabled: boolean;
+  hapticsEnabled: boolean;
+  alwaysSkipReveals: boolean;
+  profileVisibility: 'public' | 'private';
+  displayName?: string;
+  onboarded: boolean;
+}
+
+export const DEFAULT_V2_PREFERENCES: V2Preferences = {
+  questType: 'random',
+  focus: 'any',
+  partySize: 1,
+  radiusMiles: 2,
+  soundsEnabled: true,
+  hapticsEnabled: true,
+  alwaysSkipReveals: false,
+  profileVisibility: 'private',
+  onboarded: false,
+};
+
+export const QUEST_TYPE_LABELS: Record<QuestType, string> = {
+  meal: 'Meal',
+  snack: 'Snack',
+  nature: 'Nature',
+  focus: 'Focus',
+  random: 'Random',
 };

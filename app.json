@@ -17,9 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sidequest.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Sidequest uses your location to suggest nearby places worth exploring.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sidequest uses background location to gently suggest nearby sidequests while you explore. You can turn this off anytime.",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+        "NSLocationWhenInUseUsageDescription": "Sidequest uses your location to draw sidequests near you and notice when you arrive in a new city."
       }
     },
     "android": {
@@ -31,10 +29,6 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
       ],
       "edgeToEdgeEnabled": true,
@@ -51,18 +45,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Sidequest to use your location to suggest nearby adventures.",
-          "locationAlwaysPermission": "Allow Sidequest to discover nearby sidequests in the background.",
-          "locationWhenInUsePermission": "Allow Sidequest to find interesting places near you.",
-          "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#2F5D50"
+          "locationWhenInUsePermission": "Allow Sidequest to find sidequests near you."
         }
       ],
       [
@@ -71,7 +54,8 @@
           "photosPermission": "Allow Sidequest to attach photos to your adventure journal."
         }
       ],
-      "expo-task-manager"
+      "expo-audio",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

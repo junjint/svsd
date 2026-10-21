@@ -1,0 +1,10 @@
+{
+  "$comment": "Reveal designer's Bencho blocks. Merged by scripts/bencho.mjs.",
+  "blocks": {
+    "scratch-card": { "name": "ScratchCard", "files": ["ScratchCard.tsx", "ScratchCard.css"], "mode": "dom" },
+    "page-peel": { "name": "PagePeel", "files": ["PagePeel.tsx", "PagePeel.css"], "mode": "dom" },
+    "card-fan": { "name": "CardFan", "files": ["CardFan.tsx", "CardFan.css"], "mode": "dom" },
+    "option-wheel": { "name": "OptionWheel", "files": ["OptionWheel.tsx", "OptionWheel.css"], "mode": "dom" },
+    "confetti": { "name": "Confetti", "files": ["Confetti.tsx", "Confetti.css"], "mode": "dom" }
+  }
+}

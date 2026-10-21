@@ -1,8 +1,12 @@
 import { ANN_ARBOR_DEMO_PLACES } from '@/data/annArborPlaces';
+import { NYC_DEMO_PLACES } from '@/data/nycPlaces';
 import { distanceMeters } from '@/utils/geo';
 import type { InterestCategory, Place } from '@/types';
 import type { PlaceProvider, PlaceSearchFilters } from './types';
 import type { Coordinates } from '@/types';
+
+/** Every demo city's places; the radius filter keeps each draw local */
+export const MOCK_PLACES: Place[] = [...ANN_ARBOR_DEMO_PLACES, ...NYC_DEMO_PLACES];
 
 export class MockPlaceProvider implements PlaceProvider {
   readonly name = 'mock';
@@ -17,7 +21,7 @@ export class MockPlaceProvider implements PlaceProvider {
       categories.length > 0 ? new Set(categories) : null;
     const exclude = new Set(filters?.excludePlaceIds ?? []);
 
-    let results = ANN_ARBOR_DEMO_PLACES.filter((place) => {
+    let results = MOCK_PLACES.filter((place) => {
       if (exclude.has(place.id)) return false;
       const d = distanceMeters(location, place.coordinates);
       if (d > radiusMeters) return false;
@@ -50,6 +54,6 @@ export class MockPlaceProvider implements PlaceProvider {
   }
 
   async getPlaceDetails(placeId: string): Promise<Place | null> {
-    return ANN_ARBOR_DEMO_PLACES.find((p) => p.id === placeId) ?? null;
+    return MOCK_PLACES.find((p) => p.id === placeId) ?? null;
   }
 }

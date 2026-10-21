@@ -1,10 +1,7 @@
 import { Redirect } from 'expo-router';
-import { useAppStore } from '@/stores/appStore';
+import { useSidequestStore } from '@/stores/sidequestStore';
 
 export default function Index() {
-  const user = useAppStore((s) => s.user);
-  if (!user?.onboardingCompleted) {
-    return <Redirect href="/onboarding" />;
-  }
-  return <Redirect href="/(tabs)/home" />;
+  const onboarded = useSidequestStore((s) => s.prefs.onboarded);
+  return <Redirect href={onboarded ? '/draw' : '/onboarding'} />;
 }

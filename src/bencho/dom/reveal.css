@@ -1,0 +1,283 @@
+/* Sidequest reveal surfaces: the prize card, card backs and faces,
+   the peel sticker and the coin. Tokens follow docs/SPEC.md §2.2. */
+
+.rv-surface { position: relative; overflow: visible; }
+
+/* ── the place card ─────────────────────────────────────── */
+.rv-place {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 24px;
+  overflow: hidden;
+  color: #15100e;
+  background:
+    radial-gradient(120% 60% at 50% 0%, var(--rv-glow, rgba(168, 174, 183, 0.18)), transparent 70%),
+    radial-gradient(rgba(17, 17, 20, 0.05) 0.6px, transparent 0.8px) 0 0 / 5px 5px,
+    #fffefb;}
+
+.rv-place[data-rarity="rare"] { --rv-glow: rgba(159, 216, 246, 0.32); }
+.rv-place[data-rarity="legendary"] { --rv-glow: rgba(247, 215, 116, 0.42); }
+
+.rv-place[data-photo] { justify-content: flex-end; padding-top: 0; }
+
+.rv-photo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 56%;
+  /* the photo-viewer reference: edges feathered into the paper */
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent), linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 70%, transparent), linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-composite: intersect;}
+
+.rv-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.rv-place-text { position: relative; text-align: center; }
+
+.rv-lead {
+  margin: 0 0 10px;
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1.15;
+  color: #6b6b73;
+  letter-spacing: -0.01em;}
+
+.rv-name {
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: #15100e;
+  text-wrap: balance;}
+
+.rv-distance {
+  margin: 16px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b6b73;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;}
+
+.rv-meta { margin: 4px 0 0; font-size: 12px; color: #b4b4bb; }
+
+.rv-demo {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid #ececef;
+  font-size: 11px;
+  color: #b4b4bb;}
+
+.rv-rarity {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 1;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #15100e;
+  background: linear-gradient(110deg, #9fd8f6, #c9b4ff, #f5b6e2);}
+
+.rv-place[data-rarity="legendary"] .rv-rarity { background: linear-gradient(110deg, #f7d774, #ffb547, #f5e6b8); }
+
+/* ── card back / face (card fan) ─────────────────────────── */
+.rv-back,
+.rv-face {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: inherit;}
+
+.rv-back {
+  --a: #a8aeb7;
+  --b: #d2d5db;
+  color: rgba(255, 255, 255, 0.92);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 9px),
+    linear-gradient(150deg, var(--a), var(--b));
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.5), inset 0 0 0 7px rgba(17, 17, 20, 0.06), 0 18px 40px rgba(17, 17, 20, 0.12), 0 2px 6px rgba(17, 17, 20, 0.06);}
+
+.rv-back[data-rarity="rare"] { --a: #9fd8f6; --b: #c9b4ff; }
+.rv-back[data-rarity="legendary"] { --a: #f7d774; --b: #ffb547; }
+
+.rv-back-star { font-size: 44px; line-height: 1; text-shadow: 0 1px 0 rgba(17, 17, 20, 0.12); }
+.rv-back-word { width: 62px; height: auto; display: block; }
+
+.rv-face {
+  padding: 14px 12px;
+  text-align: center;
+  color: #15100e;
+  background: #fffefb;
+  box-shadow: inset 0 0 0 1px #ececef, 0 18px 40px rgba(17, 17, 20, 0.14), 0 2px 6px rgba(17, 17, 20, 0.06);}
+
+.rv-face-kicker {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b4b4bb;}
+
+.rv-face[data-rarity="legendary"] .rv-face-kicker { color: #d9a23a; }
+.rv-face[data-rarity="rare"] .rv-face-kicker { color: #8a7bd8; }
+
+.rv-face-text { line-height: 1.08; letter-spacing: -0.01em; text-wrap: balance; }
+
+/* ── the peel sticker ───────────────────────────────────── */
+.rv-sticker {
+  --a: #eef0f3;
+  --b: #d2d5db;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #15100e;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 1px) 0 0 / 6px 6px,
+    linear-gradient(160deg, var(--a), var(--b));}
+
+.rv-sticker[data-rarity="rare"] { --a: #dff3fd; --b: #e4d9ff; }
+.rv-sticker[data-rarity="legendary"] { --a: #fbeab3; --b: #ffc977; }
+
+.rv-sticker-star { font-size: 64px; line-height: 1; }
+.rv-sticker-word { width: 112px; height: auto; display: block; }
+.rv-sticker-hint { margin-top: 18px; font-size: 13px; font-weight: 500; color: #6b6b73; }
+
+/* ── the coin (our own) ─────────────────────────────────── */
+.rv-coin-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  padding-bottom: 20px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-ui);}
+
+.rv-coin-air { position: relative; perspective: 900px; cursor: grab; }
+
+.rv-coin {
+  --m1: #f4f5f7;
+  --m2: #c9ccd2;
+  --m3: #9aa0aa;
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;}
+
+.rv-coin[data-metal="holo"] { --m1: #f3f0ff; --m2: #cfe3f5; --m3: #a9a3d6; }
+.rv-coin[data-metal="gold"] { --m1: #fff3c4; --m2: #f7d774; --m3: #d99a2b; }
+
+.rv-coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.95), transparent 38%),
+    conic-gradient(from 210deg, var(--m2), var(--m1), var(--m3), var(--m2), var(--m1), var(--m2));
+  box-shadow:
+    inset 0 0 0 7px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 9px rgba(17, 17, 20, 0.1),
+    inset 0 -6px 14px rgba(17, 17, 20, 0.16);
+  color: rgba(17, 17, 20, 0.55);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);}
+
+.rv-coin-face span { font-size: 64px; line-height: 1; }
+
+.rv-coin-tails { transform: rotateX(180deg); }
+
+.rv-coin-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  width: 70%;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(17, 17, 20, 0.2), transparent);}
+
+.rv-coin-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 40px;
+  padding: 0 18px;
+  box-sizing: border-box;}
+
+.rv-coin-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px #ececef;
+  font-size: 15px;
+  line-height: 1.25;
+  color: #15100e;
+  transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease;}
+
+.rv-coin-option b {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-weight: 400;
+  font-size: 18px;
+  background: #f4f4f1;}
+
+.rv-coin-stage[data-landed] .rv-coin-option:not([data-on]) { opacity: 0.32; transform: scale(0.97); }
+.rv-coin-stage[data-landed] .rv-coin-option[data-on] { box-shadow: inset 0 0 0 1.5px #15100e; transform: scale(1.03); }
+
+.rv-coin-hint { margin-top: 14px; font-size: 13px; color: #6b6b73; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-coin-option { transition: none; }
+}
+
+/* ── the option drum ────────────────────────────────────── */
+.rv-wheel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #f4f4f1, #fffefb 30%, #fffefb 70%, #f4f4f1);
+  box-shadow: inset 0 0 0 1px #ececef;}
+
+.rv-wheel-band {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 72px;
+  translate: 0 -50%;
+  border-radius: 18px;
+  background: rgba(21, 16, 14, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(21, 16, 14, 0.12);}
+
+.rv-wheel .owh { position: absolute; inset: 0; }
+.rv-wheel .owh-drum { left: 30px; right: 26px; }

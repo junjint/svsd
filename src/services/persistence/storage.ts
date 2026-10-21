@@ -11,6 +11,12 @@ const KEYS = {
   demo: '@sidequest/demo',
   cachedPlaces: '@sidequest/cached_places',
   dismissedPlaceIds: '@sidequest/dismissed_places',
+  v2Preferences: '@sidequest/v2/preferences',
+  v2Quests: '@sidequest/v2/quests',
+  v2Folders: '@sidequest/v2/folders',
+  v2Badges: '@sidequest/v2/badges',
+  v2DrawCount: '@sidequest/v2/draw_count',
+  v2Seeded: '@sidequest/v2/seeded',
 } as const;
 
 export type StorageKey = keyof typeof KEYS;

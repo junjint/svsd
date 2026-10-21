@@ -1,0 +1,10 @@
+{
+  "$comment": "Shell designer's Bencho blocks. All are native Reanimated + Gesture Handler ports (no vendored source): src/ui/LiquidToggle.tsx, src/ui/RollingCounter.tsx, src/ui/Toast.tsx, src/ui/TabBar.tsx, src/features/location/RadiusPicker.tsx.",
+  "blocks": {
+    "liq-toggle": { "name": "LiquidToggle", "files": [], "mode": "port" },
+    "rolling-counter": { "name": "RollingCounter", "files": [], "mode": "port" },
+    "toast-stack": { "name": "ToastStack", "files": [], "mode": "port" },
+    "tab-bar": { "name": "TabBar", "files": [], "mode": "port" },
+    "progress": { "name": "RadiusPicker", "files": [], "mode": "port" }
+  }
+}

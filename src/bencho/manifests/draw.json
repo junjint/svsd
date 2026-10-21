@@ -1,0 +1,7 @@
+{
+  "$comment": "Draw designer's Bencho blocks. Both are native Reanimated ports (no vendored source): src/features/draw/deck/Deck.tsx and src/features/draw/result/SlideToGo.tsx.",
+  "blocks": {
+    "card-swap": { "name": "CardSwap", "files": [], "mode": "port" },
+    "slide-confirm": { "name": "SlideConfirm", "files": [], "mode": "port" }
+  }
+}

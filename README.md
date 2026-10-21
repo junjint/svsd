@@ -4,6 +4,8 @@
 
 Sidequest is a mobile-first Expo app that discovers interesting places near you and occasionally invites spontaneous, walkable detours — framed as miniature adventures with a personal journal.
 
+**v2 build spec (gacha draw, folders, trophies, wall, Bencho UI + sounds): [`docs/SPEC.md`](docs/SPEC.md)**
+
 This repository contains the **functional infrastructure** (routing, discovery, recommendations, location, notifications, quest lifecycle, journal, demo mode) plus a minimal **editorial design system**.
 
 ### Design system

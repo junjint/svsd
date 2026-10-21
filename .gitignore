@@ -40,3 +40,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Bencho Pro blocks + sounds — licensed, not redistributable (docs/SPEC.md §6.4)
+src/bencho/blocks/
+assets/sounds/
+src/services/sound/registry.generated.ts
+src/bencho/patches/
