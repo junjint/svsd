@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { color, radius as R } from '@/theme';
 import { Shimmer } from './Shimmer';
 
@@ -27,18 +28,26 @@ export function Photo({
 }) {
   const [loaded, setLoaded] = useState(false);
   const clear = transparent(on);
+  // our own fade: expo-image's web transition can stick at 0 when the load lands mid page-entrance
+  const shown = useSharedValue(0);
+  useEffect(() => {
+    shown.value = withTiming(loaded ? 1 : 0, { duration: loaded ? 240 : 0 });
+  }, [loaded, shown]);
+  const fade = useAnimatedStyle(() => ({ opacity: shown.value }));
+  useEffect(() => setLoaded(false), [uri]);
   return (
     <View style={[{ overflow: 'hidden', borderRadius: radius }, style]}>
       {!loaded && <Shimmer radius={radius} style={StyleSheet.absoluteFill} />}
-      <Image
-        source={{ uri }}
-        style={StyleSheet.absoluteFill}
-        contentFit={contentFit}
-        transition={240}
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
-        accessibilityIgnoresInvertColors
-      />
+      <Animated.View style={[StyleSheet.absoluteFill, fade]}>
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          contentFit={contentFit}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+          accessibilityIgnoresInvertColors
+        />
+      </Animated.View>
       {feather > 0 && (
         <>
           <LinearGradient pointerEvents="none" colors={[on, clear]} style={[styles.h, { top: 0, height: feather }]} />

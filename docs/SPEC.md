@@ -108,6 +108,7 @@ This build drops the current Moon / DM Sans system in `src/design/` entirely. It
 > - **Why Sidequest:** onboarding opens with "Nothing here is / fed to you." under the ornate arch, and the same story lives at Settings > Why Sidequest (`/about`).
 > - **Just for you (2026-10-22, after the merge with Jun's walk):** Profile has no Gallery and no public/private toggle, and folders lose "Save to Gallery": Sidequest isn't a social format. Profile keeps the banner, calendar, trophies and the Suggest card.
 > - **Get directions opens Jun's walk (`/walk?quest=`)**, restyled to the app: paper map with ink route and pins (no blue), glass buttons with drawn icons, a torn-paper route card in Garamond, and a Live Activity in ink and white. The paper-model `/map` stays for Look around. The header's walking-demo shortcut is gone; top left is Suggest only.
+> - **Sidequest pictures:** no more "AI concept" tags. Each sidequest gets a cover by kind of place (coffee, bakery, garden, water, books, music, records, thrift, mural, art, campus, food, street...), picked from a few free Unsplash photos per kind plus Jun's four images (now webp). The same sidequest always gets the same picture (`placePhotoRef` in `src/features/quest/conceptPhoto.ts`). Photo fades in on its own, so a new sidequest's page always shows its picture on first open.
 
 ### 3.1 Home = the Draw screen
 

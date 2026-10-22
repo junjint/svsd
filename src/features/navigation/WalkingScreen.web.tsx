@@ -494,13 +494,8 @@ export default function WalkingScreen() {
           <figure>
             <img
               src={photo}
-              alt="Generated concept of a colorful street-art passage"
+              alt=""
             />
-            <figcaption>
-              AI-generated concept
-              <br />
-              Not a photo of this place
-            </figcaption>
           </figure>
           <div className="rw-receipt">
             <Receipt
@@ -534,9 +529,8 @@ export default function WalkingScreen() {
         <figure className="rw-quest-photo" style={variables}>
           <img
             src={photo}
-            alt={`Generated concept preview for ${clean(target.placeName)}`}
+            alt=""
           />
-          <figcaption>AI-generated concept · not a place photo</figcaption>
         </figure>
         <Text variant="prose">{target.activityText}</Text>
         {target.status === "completed" ? (
@@ -555,9 +549,8 @@ export default function WalkingScreen() {
         <figure className="rw-quest-photo" style={variables}>
           <img
             src={photo}
-            alt={`Generated concept preview for ${clean(target.placeName)}`}
+            alt=""
           />
-          <figcaption>AI-generated concept · not a place photo</figcaption>
         </figure>
         <Text variant="prose">{target.activityText}</Text>
         <PillButton
@@ -777,11 +770,8 @@ export default function WalkingScreen() {
                   <figure>
                     <img
                       src={photo}
-                      alt={`Generated concept preview for ${clean(target.placeName)}`}
+                      alt=""
                     />
-                    <figcaption>
-                      AI-generated concept · not a place photo
-                    </figcaption>
                   </figure>
                   <p>{target.activityText}</p>
                   <div>
