@@ -11,10 +11,11 @@ import { PageDots } from './PageDots';
 import { StepVibe } from './StepVibe';
 import { StepWhat } from './StepWhat';
 import { StepWhere } from './StepWhere';
+import { StepWhy } from './StepWhy';
 
-const STEPS = 3;
+const STEPS = 4;
 
-/** Three pages on one rail (SPEC §4.6): what → where → vibe */
+/** Four pages on one rail (SPEC §4.6): why → what → where → vibe */
 export function OnboardingFlow() {
   const insets = useSafeAreaInsets();
   const still = useReducedMotion();
@@ -46,12 +47,12 @@ export function OnboardingFlow() {
   const rail = useAnimatedStyle(() => ({ opacity: fade.value, transform: [{ translateX: x.value }] }));
 
   const web = Platform.OS === 'web';
-  const needsAsk = step === 1 && !web && !asked;
+  const needsAsk = step === 2 && !web && !asked;
 
   const next = async () => {
     if (busy) return;
-    if (step === 0) return setStep(1);
-    if (step === 1) {
+    if (step < 2) return setStep(step + 1);
+    if (step === 2) {
       if (needsAsk) {
         setBusy(true);
         await refreshLocation({ ask: true });
@@ -60,7 +61,7 @@ export function OnboardingFlow() {
       } else if (web) {
         void refreshLocation();
       }
-      return setStep(2);
+      return setStep(3);
     }
     if (!ageOk) return;
     setBusy(true);
@@ -68,7 +69,7 @@ export function OnboardingFlow() {
     router.replace('/draw');
   };
 
-  const cta = step === 0 ? 'Continue' : step === 1 ? (needsAsk ? 'Allow location' : 'Continue') : 'Start drawing';
+  const cta = step < 2 ? 'Continue' : step === 2 ? (needsAsk ? 'Allow location' : 'Continue') : 'Start drawing';
 
   return (
     <Paper edges={['top']}>
@@ -87,7 +88,7 @@ export function OnboardingFlow() {
       <View style={styles.viewport} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && (
           <Animated.View style={[styles.rail, { width: width * STEPS }, rail]}>
-            {[0, 1, 2].map((i) => (
+            {[0, 1, 2, 3].map((i) => (
               <View
                 key={i}
                 style={{ width }}
@@ -95,9 +96,10 @@ export function OnboardingFlow() {
                 accessibilityElementsHidden={i !== step}
                 importantForAccessibility={i === step ? 'auto' : 'no-hide-descendants'}
               >
-                {i === 0 && <StepWhat width={width} />}
-                {i === 1 && <StepWhere miles={miles} onMiles={setMiles} asked={asked} />}
-                {i === 2 && <StepVibe type={type} onType={setType} ageOk={ageOk} onAge={setAgeOk} />}
+                {i === 0 && <StepWhy width={width} />}
+                {i === 1 && <StepWhat width={width} />}
+                {i === 2 && <StepWhere miles={miles} onMiles={setMiles} asked={asked} />}
+                {i === 3 && <StepVibe type={type} onType={setType} ageOk={ageOk} onAge={setAgeOk} />}
               </View>
             ))}
           </Animated.View>
@@ -108,8 +110,8 @@ export function OnboardingFlow() {
         <PageDots count={STEPS} index={step} />
         <PillButton
           label={cta}
-          sound={step === 2 ? 'drawPress' : 'tabSwitch'}
-          disabled={busy || (step === 2 && !ageOk)}
+          sound={step === 3 ? 'drawPress' : 'tabSwitch'}
+          disabled={busy || (step === 3 && !ageOk)}
           onPress={() => void next()}
         />
       </View>

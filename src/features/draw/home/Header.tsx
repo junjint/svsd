@@ -1,22 +1,29 @@
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { CountPill, Logo } from '@/theme';
+import { CountPill, GlassIconButton, Logo } from '@/theme';
+import { SuggestGlyph } from '@/features/suggest/SuggestGlyph';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { PressScale } from '../PressScale';
 
 const ACTIVE = new Set(['accepted', 'en_route', 'arrived']);
 
 /**
- * Header: wordmark · count of active quests.
- * `minimal` drops the count, leaving room for the receipt's close button.
+ * Header: suggest · wordmark · count of active quests.
+ * `minimal` drops both sides, leaving room for the receipt's close button.
  */
-export function Header({ minimal = false }: { minimal?: boolean }) {
+export function Header({ minimal = false, onSuggest }: { minimal?: boolean; onSuggest?: () => void }) {
   const active = useSidequestStore((s) => s.quests.filter((q) => ACTIVE.has(q.status)).length);
 
   return (
     <View style={styles.row}>
-      {/* Profile lives in the tab bar only; this keeps the logo centred */}
-      <View style={styles.side} />
+      {/* same width as the right side, so the logo stays centred */}
+      <View style={styles.side}>
+        {!minimal && onSuggest ? (
+          <GlassIconButton label="Suggest a sidequest" size={40} onPress={onSuggest}>
+            <SuggestGlyph />
+          </GlassIconButton>
+        ) : null}
+      </View>
 
       <Logo />
 
@@ -45,5 +52,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 56,
   },
-  side: { width: 56, height: 44, justifyContent: 'center' },
+  side: { width: 56, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
 });

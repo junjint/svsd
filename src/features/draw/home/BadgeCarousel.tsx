@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { BADGES } from '@/data/badges';
+import { BadgeArt } from '@/features/profile/BadgeArt';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { color } from '@/theme';
 import { useScreen } from '@/ui';
@@ -61,7 +62,7 @@ export function BadgeCarousel() {
     >
       <Animated.View style={[styles.lane, move]}>
         {[...lane, ...lane].map((b, i) => (
-          <Image key={`${b.id}-${i}`} source={b.art} contentFit="contain" style={styles.badge} />
+          <BadgeArt key={`${b.id}-${i}`} art={b.art} size={SIZE} />
         ))}
       </Animated.View>
       <FrostEdge side="left" />
@@ -113,7 +114,6 @@ const styles = StyleSheet.create({
   // taller than the badges, so the frost fades out over empty paper above and below them
   wrap: { height: SIZE + 64, alignSelf: 'center', overflow: 'hidden', justifyContent: 'center' },
   lane: { flexDirection: 'row', gap: GAP, paddingLeft: GAP },
-  badge: { width: SIZE, height: SIZE },
   edge: { position: 'absolute', top: 0, bottom: 0, width: EDGE },
   step: { position: 'absolute', top: 0, bottom: 0 },
 });

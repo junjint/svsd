@@ -92,10 +92,10 @@ describe('badges', () => {
   const quest = (over: Partial<DrawnSidequest> = {}) =>
     ({ partySize: 1, rarity: 'common', rerollsUsed: { place: 0, activity: 0 }, cityLabel: 'A', questType: 'nature', ...over }) as DrawnSidequest;
   it('awards First Sidequest and No Rerolls on the first clean completion', () => {
-    const got = newlyEarned({ completed: [quest()], approvedSuggestions: 0 }, []);
+    const got = newlyEarned({ completed: [quest()], suggestions: [] }, []);
     expect(got).toEqual(expect.arrayContaining(['first_sidequest', 'no_rerolls']));
   });
   it('never re-awards an owned badge', () => {
-    expect(newlyEarned({ completed: [quest()], approvedSuggestions: 0 }, BADGES.map((b) => b.id))).toEqual([]);
+    expect(newlyEarned({ completed: [quest()], suggestions: [] }, BADGES.map((b) => b.id))).toEqual([]);
   });
 });

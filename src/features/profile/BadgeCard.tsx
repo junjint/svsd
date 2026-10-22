@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
 import { Text, TornPaper, color, receiptInk, space } from '@/theme';
 import type { BadgeDef } from '@/data/badges';
 import type { EarnedBadge } from '@/types';
 import { Lock } from '@/features/folders/icons';
 import { shortDate } from '@/features/folders/format';
+import { BadgeArt } from './BadgeArt';
 
 /* A trophy-case tile: a torn receipt stub. Earned: the chrome badge art,
    the name, the day. Locked: the same stub, faded, with a lock. */
@@ -20,12 +20,7 @@ export function BadgeCard({ badge, earned, width, big = false }: { badge: BadgeD
     >
       <TornPaper seed={`badge-${badge.id}`} contentStyle={[styles.face, { minHeight: height, padding: big ? space.xl : space.sm }]}>
         <View>
-          <Image
-            source={badge.art}
-            style={{ width: width * (big ? 0.5 : 0.56), aspectRatio: 1 }}
-            contentFit="contain"
-            accessible={false}
-          />
+          <BadgeArt art={badge.art} size={width * (big ? 0.5 : 0.56)} />
           {!earned && (
             <View style={styles.lockPin}>
               <Lock size={9} />

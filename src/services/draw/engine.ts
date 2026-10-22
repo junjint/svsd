@@ -1,6 +1,5 @@
 import { ACTIVITIES } from '@/data/activities';
 import { placeService } from '@/services/places/PlaceService';
-import { selectWeighted } from '@/services/recommendation/engine';
 import { distanceMeters } from '@/utils/geo';
 import { createId } from '@/utils/id';
 import type {
@@ -11,7 +10,6 @@ import type {
   Place,
   QuestType,
   Rarity,
-  RecommendationScoreBreakdown,
   RevealStyle,
 } from '@/types';
 import {
@@ -122,28 +120,19 @@ export interface PlaceQuery {
   partySize?: number;
 }
 
-function scoreForDraw(place: Place, q: PlaceQuery, radiusMeters: number): RecommendationScoreBreakdown {
-  const d = distanceMeters(q.location, place.coordinates);
-  // Anywhere inside the radius is fair game; slightly favor the nearer half
-  const proximity = d > radiusMeters ? 0 : 1 - 0.4 * (d / radiusMeters);
-  const interest = categoriesFor(q.settings.questType).includes(place.category) ? 1 : 0.3;
-  const context = place.openingHours?.openNow === false ? 0.1 : 0.9;
-  const story = place.storyHooks?.length ? 0.9 : 0.5;
-  const novelty = 1;
-  const surprise = place.category === 'unexpected' ? 0.9 : 0.4;
-  const total = 0.3 * interest + 0.25 * proximity + 0.2 * context + 0.15 * story + 0.1 * surprise;
-  return { interest, proximity, novelty, context, surprise, story, total };
-}
-
+/**
+ * Every place inside the radius has the same chance. No scoring, no top-N:
+ * a place someone suggested yesterday is as likely as a landmark.
+ */
 export async function drawPlace(q: PlaceQuery, random: Rng = Math.random): Promise<Place | null> {
   const radius = milesToMeters(q.settings.radiusMiles);
-  const places = await placeService.searchNearby(q.location, radius, categoriesFor(q.settings.questType), {
-    excludePlaceIds: q.excludePlaceIds,
-  });
-  const scored = places
-    .filter((p) => distanceMeters(q.location, p.coordinates) <= radius)
-    .map((place) => ({ place, score: scoreForDraw(place, q, radius) }));
-  return selectWeighted(scored, random)?.place ?? null;
+  const places = (
+    await placeService.searchNearby(q.location, radius, categoriesFor(q.settings.questType), {
+      excludePlaceIds: q.excludePlaceIds,
+      maxResults: 500,
+    })
+  ).filter((p) => distanceMeters(q.location, p.coordinates) <= radius && p.openingHours?.openNow !== false);
+  return places[Math.floor(random() * places.length)] ?? null;
 }
 
 /* ── assembling the quest ───────────────────────────────── */

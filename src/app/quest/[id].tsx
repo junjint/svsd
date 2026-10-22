@@ -7,8 +7,8 @@ import { SoftButton } from '@/features/folders/SoftButton';
 import { partyLabel } from '@/features/folders/format';
 import { Chevron } from '@/features/folders/icons';
 import { QuestHero } from '@/features/quest/QuestHero';
+import { startNavigation } from '@/features/navigation/startNavigation';
 import { formatMiles, travelLabel } from '@/services/draw/rules';
-import { openWalkingDirections } from '@/services/navigation/maps';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { GlassIconButton, Paper, PillButton, Text, TornPaper, color, fonts, radius, rarityColor, receiptInk, space } from '@/theme';
@@ -110,9 +110,9 @@ export default function QuestScreen() {
         <Animated.View entering={enter(4)} style={{ flexDirection: 'row', gap: space.sm }}>
           <SoftButton
             label="Directions"
-            accessibilityLabel={`Open walking directions to ${quest.placeName}`}
+            accessibilityLabel={`Get directions to ${quest.placeName}`}
             style={{ flex: 1 }}
-            onPress={() => void openWalkingDirections(quest.coordinates, quest.placeName)}
+            onPress={() => startNavigation({ sidequestId: quest.id, placeName: quest.placeName, coordinates: quest.coordinates })}
           />
           {!isSaved && (
             <SoftButton

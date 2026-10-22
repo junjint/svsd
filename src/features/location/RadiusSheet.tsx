@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { PillButton } from '@/theme';
 import { Sheet } from '@/ui';
@@ -29,6 +30,16 @@ export function RadiusSheet({ visible, onClose }: RadiusSheetProps) {
     <Sheet visible={visible} onClose={onClose} title="How far will you go?" subtitle={`Places within this distance of you in ${city}.`}>
       <RadiusPicker value={draft} onChange={setDraft} onCommit={commit} />
       <PillButton label="Done" sound={null} onPress={onClose} />
+      <PillButton
+        label="Look around"
+        tone="frost"
+        sound={null}
+        onPress={() => {
+          onClose();
+          // let the sheet finish leaving before the map comes in
+          setTimeout(() => router.push('/map'), 260);
+        }}
+      />
     </Sheet>
   );
 }

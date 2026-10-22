@@ -11,8 +11,10 @@ You edit **only** the files your area owns. If you need something changed in a s
 | **PM** (shared foundation) | `src/theme/**`, `src/stores/**`, `src/services/**`, `src/types/**`, `src/data/badges.ts`, `src/data/demoCities.ts`, `src/app/_layout.tsx`, `src/app/index.tsx`, `src/app/(tabs)/wall.tsx`, `src/bencho/manifest.json`, `src/bencho/bencho-theme.css`, `scripts/**`, `docs/**`, `package.json`, `metro.config.js`, `app.json` |
 | **Reveal** | `src/features/reveal/**`, `src/bencho/dom/**`, `src/bencho/blocks/**`, `src/bencho/patches/**`, `src/bencho/manifests/reveal.json`, `src/app/dev/**` |
 | **Draw** | `src/app/(tabs)/draw.tsx`, `src/features/draw/**`, `src/bencho/manifests/draw.json` (see the note below on DOM blocks) |
-| **Shell** | `src/app/(tabs)/_layout.tsx`, `src/app/onboarding.tsx` (or an `onboarding/` route folder), `src/features/onboarding/**`, `src/features/location/**`, `src/ui/**`, `src/bencho/manifests/shell.json` |
+| **Shell** | `src/app/(tabs)/_layout.tsx`, `src/app/onboarding.tsx` (or an `onboarding/` route folder), `src/features/onboarding/**`, `src/app/about.tsx`, `src/features/location/**`, `src/ui/**`, `src/bencho/manifests/shell.json` |
 | **Folders & Profile** | `src/app/(tabs)/folders.tsx`, `src/app/(tabs)/profile.tsx`, `src/app/quest/[id].tsx`, `src/app/folder/[id].tsx`, `src/app/settings.tsx`, `src/features/folders/**`, `src/features/profile/**`, `src/features/quest/**`, `src/bencho/manifests/folders.json` |
+| **Suggest** (2026-10-22) | `src/features/suggest/**`, `src/services/suggest/**`, `src/services/places/UserPlaceProvider.ts`, `__tests__/suggest.test.ts` |
+| **Map** (2026-10-22) | `src/app/map.tsx`, `src/features/map/**`, `src/features/navigation/**`, `__tests__/terrain.test.ts`. Uses `three` (plain, no r3f) on web only, in `MapScene.web.tsx`; `MapScene.tsx` is the SVG version for native and as the fallback. |
 | **Content** | `src/data/activities.ts`, `src/data/annArborPlaces.ts`, `src/data/nycPlaces.ts` (new), `src/services/places/MockPlaceProvider.ts`, `__tests__/content.test.ts` (new) |
 
 **Who adds Bencho blocks:** only the Reveal designer vendors blocks into `src/bencho/blocks` and `src/bencho/dom`.

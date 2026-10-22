@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
+import { ACTIVITIES } from '@/data/activities';
 import { newlyEarned } from '@/data/badges';
 import { buildDrawnQuest, drawActivities, drawPlace, optionsFor, pickRevealStyles, rollRarity } from '@/services/draw/engine';
 import { REROLLS_PER_STAGE } from '@/services/draw/rules';
@@ -8,6 +9,8 @@ import { DEMO_CITIES, type DemoCityKey } from '@/data/demoCities';
 import { buildPastQuests } from '@/data/pastQuests';
 import { getCurrentPosition, requestForegroundLocation } from '@/services/location/permissions';
 import { storage } from '@/services/persistence/storage';
+import { placeService } from '@/services/places/PlaceService';
+import { normaliseActivity, normalisePlace, placeCoordinates, suggestedToday, userActivitiesFor, userPlaces } from '@/services/suggest/pool';
 import { forceStatus } from '@/services/sidequest/lifecycle';
 import { setFeedbackEnabled } from '@/services/sound';
 import { createId } from '@/utils/id';
@@ -20,10 +23,13 @@ import {
   type DrawnSidequest,
   type EarnedBadge,
   type FolderPhoto,
+  type InterestCategory,
   type Place,
   type QuestFolder,
   type Rarity,
   type RevealStyle,
+  type Suggestion,
+  type SuggestionBand,
   type V2Preferences,
 } from '@/types';
 
@@ -69,6 +75,8 @@ interface SidequestState {
   badges: EarnedBadge[];
   /** badges earned but not yet celebrated */
   badgeQueue: BadgeId[];
+  /** what you've left in the pool, newest first */
+  suggestions: Suggestion[];
   drawCount: number;
   draw: DrawSession | null;
 
@@ -107,6 +115,14 @@ interface SidequestState {
   /** Delete a folder and the sidequest it belongs to, as if it never happened */
   removeSidequest: (folderId: string) => Promise<void>;
 
+  /** leave a place, an activity, or both in this city's pool; one a day */
+  addSuggestion: (input: {
+    placeName?: string;
+    category?: InterestCategory;
+    band?: SuggestionBand;
+    activityText?: string;
+  }) => Promise<{ ok: true; suggestion: Suggestion } | { ok: false; reason: 'limit' | 'empty' }>;
+
   shiftBadge: () => BadgeId | undefined;
   clearAll: () => Promise<void>;
 }
@@ -130,6 +146,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       storage.setJson('v2Quests', s.quests),
       storage.setJson('v2Folders', s.folders),
       storage.setJson('v2Badges', s.badges),
+      storage.setJson('v2Suggestions', s.suggestions),
       storage.setJson('v2DrawCount', s.drawCount),
     ]);
   };
@@ -147,6 +164,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         focus: d.settings.focus,
         partySize: d.settings.partySize,
         excludeIds: d.seenActivityIds,
+        pool: [...ACTIVITIES, ...userActivitiesFor(get().suggestions, get().location.cityLabel)],
       },
       d.rarity,
       optionsFor(d.revealStyle.activity)
@@ -168,18 +186,22 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     folders: [],
     badges: [],
     badgeQueue: [],
+    suggestions: [],
     drawCount: 0,
     draw: null,
 
     hydrate: async () => {
-      const [prefs, stored, storedFolders, badges, drawCount, seeded] = await Promise.all([
+      const [prefs, stored, storedFolders, badges, drawCount, seeded, storedSuggestions] = await Promise.all([
         storage.getJson<V2Preferences>('v2Preferences'),
         storage.getJson<DrawnSidequest[]>('v2Quests'),
         storage.getJson<QuestFolder[]>('v2Folders'),
         storage.getJson<EarnedBadge[]>('v2Badges'),
         storage.getJson<number>('v2DrawCount'),
         storage.getJson<boolean>('v2Seeded'),
+        storage.getJson<Suggestion[]>('v2Suggestions'),
       ]);
+      const suggestions = storedSuggestions ?? [];
+      placeService.setUserPlaces(userPlaces(suggestions));
       let quests = stored ?? [];
       let folders = storedFolders ?? [];
       let earned = badges ?? [];
@@ -193,7 +215,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         // their badges count too, quietly: no celebration for the past
         const done = quests.filter((q) => q.status === 'completed');
         const at = new Date().toISOString();
-        earned = [...earned, ...newlyEarned({ completed: done, approvedSuggestions: 0 }, earned.map((b) => b.id)).map((id) => ({ id, earnedAt: at }))];
+        earned = [...earned, ...newlyEarned({ completed: done, suggestions }, earned.map((b) => b.id)).map((id) => ({ id, earnedAt: at }))];
         void storage.setJson('v2Seeded', true);
       }
       const merged = { ...DEFAULT_V2_PREFERENCES, ...(prefs ?? {}) };
@@ -204,6 +226,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         quests,
         folders,
         badges: earned,
+        suggestions,
         drawCount: drawCount ?? 0,
       });
       if (seedNow) await persist();
@@ -410,7 +433,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         folders = [folder, ...folders];
       }
       const completed = quests.filter((q) => q.status === 'completed');
-      const earned = newlyEarned({ completed, approvedSuggestions: 0 }, get().badges.map((b) => b.id));
+      const earned = newlyEarned({ completed, suggestions: get().suggestions }, get().badges.map((b) => b.id));
       set({
         quests,
         folders,
@@ -484,6 +507,40 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       await persist();
     },
 
+    /* ── suggest (§4.4) ─────────────────────────────────────── */
+
+    addSuggestion: async ({ placeName, category, band = 'walk', activityText }) => {
+      if (suggestedToday(get().suggestions)) return { ok: false, reason: 'limit' };
+      const name = placeName ? normalisePlace(placeName) : '';
+      const text = activityText ? normaliseActivity(activityText) : '';
+      if (!name && !text) return { ok: false, reason: 'empty' };
+      const id = createId('sug');
+      const { location } = get();
+      const suggestion: Suggestion = {
+        id,
+        cityLabel: location.cityLabel,
+        createdAt: now(),
+        ...(name && {
+          placeName: name,
+          category: category ?? 'unexpected',
+          coordinates: placeCoordinates(location.coords, band, id),
+          placeId: `user_${id}`,
+        }),
+        ...(text && { activityText: text, activityId: `act_user_${id}` }),
+      };
+      const suggestions = [suggestion, ...get().suggestions];
+      placeService.setUserPlaces(userPlaces(suggestions));
+      const completed = get().quests.filter((q) => q.status === 'completed');
+      const earned = newlyEarned({ completed, suggestions }, get().badges.map((b) => b.id));
+      set({
+        suggestions,
+        badges: [...get().badges, ...earned.map((b) => ({ id: b, earnedAt: now() }))],
+        badgeQueue: [...get().badgeQueue, ...earned],
+      });
+      await persist();
+      return { ok: true, suggestion };
+    },
+
     shiftBadge: () => {
       const [first, ...rest] = get().badgeQueue;
       set({ badgeQueue: rest });
@@ -494,12 +551,14 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       await storage.clearAllPersonalData();
       // cleared means empty: don't bring the demo library back
       await storage.setJson('v2Seeded', true);
+      placeService.setUserPlaces([]);
       set({
         prefs: DEFAULT_V2_PREFERENCES,
         quests: [],
         folders: [],
         badges: [],
         badgeQueue: [],
+        suggestions: [],
         drawCount: 0,
         draw: null,
         location: defaultLocation(),

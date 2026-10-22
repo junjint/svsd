@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { ConfirmSheet } from '@/features/folders/ConfirmSheet';
+import { Chevron } from '@/features/folders/icons';
 import { forgetPhoto } from '@/features/folders/pickPhotos';
 import { RadiusPicker } from '@/features/location';
 import { useSidequestStore } from '@/stores/sidequestStore';
@@ -60,6 +61,14 @@ export default function SettingsScreen() {
         </Group>
 
         <Group title="About">
+          <Pressable accessibilityRole="button" accessibilityLabel="Why Sidequest" onPress={() => router.push('/about')} style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="headline">Why Sidequest</Text>
+              <Text variant="caption" style={{ color: color.ink2 }}>What this is for</Text>
+            </View>
+            <Chevron dir="right" size={12} tint={color.ink3} />
+          </Pressable>
+          <Hair />
           <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: space.xs, paddingVertical: space.lg }]}>
             <Logo width={96} />
             <Text variant="callout">Version {Constants.expoConfig?.version ?? '1.0.0'}</Text>

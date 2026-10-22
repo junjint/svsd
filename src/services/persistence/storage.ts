@@ -15,6 +15,7 @@ const KEYS = {
   v2Quests: '@sidequest/v2/quests',
   v2Folders: '@sidequest/v2/folders',
   v2Badges: '@sidequest/v2/badges',
+  v2Suggestions: '@sidequest/v2/suggestions',
   v2DrawCount: '@sidequest/v2/draw_count',
   v2Seeded: '@sidequest/v2/seeded',
 } as const;

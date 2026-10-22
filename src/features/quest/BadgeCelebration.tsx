@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
+import { useIsFocused } from 'expo-router';
 import Animated, { ZoomIn, useReducedMotion, FadeIn } from 'react-native-reanimated';
 import { BADGES } from '@/data/badges';
 import { BadgeCard } from '@/features/profile/BadgeCard';
@@ -13,8 +14,8 @@ import { BADGE_LINES } from './badgeCopy';
 
 /**
  * Drains store.badgeQueue one badge at a time: a sheet with the badge as a
- * tilt card, confetti and the Bell. Mount once on the screen a completion
- * lands on (folder detail).
+ * tilt card, confetti and the Bell. Mounted on each screen a badge can
+ * land on (Library, Draw, Profile, gallery).
  */
 export function BadgeCelebration({ delayMs = 700 }: { delayMs?: number }) {
   const queued = useSidequestStore((s) => s.badgeQueue.length);
@@ -24,9 +25,11 @@ export function BadgeCelebration({ delayMs = 700 }: { delayMs?: number }) {
   const [fire, setFire] = useState(false);
   const still = useReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // mounted on several screens; only the one in front celebrates
+  const focused = useIsFocused();
 
   useEffect(() => {
-    if (current || queued === 0) return;
+    if (!focused || current || queued === 0) return;
     timer.current = setTimeout(() => {
       const next = shiftBadge();
       if (!next) return;
@@ -37,7 +40,7 @@ export function BadgeCelebration({ delayMs = 700 }: { delayMs?: number }) {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [current, queued, shiftBadge, delayMs]);
+  }, [focused, current, queued, shiftBadge, delayMs]);
 
   const badge = BADGES.find((b) => b.id === current);
   const got = earned.find((b) => b.id === current);

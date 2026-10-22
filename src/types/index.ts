@@ -358,7 +358,30 @@ export type BadgeId =
   | 'lucky_draw'
   | 'no_rerolls'
   | 'local_legend'
-  | 'touch_grass';
+  | 'touch_grass'
+  | 'word_of_mouth'
+  | 'local_knowledge'
+  | 'cartographer'
+  | 'folklore';
+
+/** How far from you a suggested place is, roughly; we never ask for an exact pin */
+export type SuggestionBand = 'here' | 'walk' | 'town';
+
+/** One thing someone left in their city's pool: a place, an activity, or both */
+export interface Suggestion {
+  id: string;
+  cityLabel: string;
+  createdAt: string;
+  placeName?: string;
+  category?: InterestCategory;
+  /** Set whenever placeName is */
+  coordinates?: Coordinates;
+  activityText?: string;
+  /** `user_<id>`, the Place this joins the pool as */
+  placeId?: string;
+  /** `act_user_<id>`, the Activity this joins the pool as */
+  activityId?: string;
+}
 
 export interface EarnedBadge {
   id: BadgeId;

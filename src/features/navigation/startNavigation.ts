@@ -1,4 +1,4 @@
-import { showToast } from '@/ui';
+import { router } from 'expo-router';
 import type { Coordinates } from '@/types';
 
 export interface NavigationTarget {
@@ -8,13 +8,11 @@ export interface NavigationTarget {
 }
 
 /**
- * The entryway to in-app navigation (the Google Maps flow).
- *
- * MERGE POINT: the navigation flow is prototyped separately. When it
- * lands, replace this body with its entry (e.g. a router.push to its
- * screen, passing `target`). Every "Get directions" button calls this
- * one function, so nothing else needs to change.
+ * The entryway to in-app navigation. Every "Get directions" button calls
+ * this one function; it opens the paper-model map (src/app/map.tsx) in
+ * navigate mode, which finds you, draws the walk and offers a real maps
+ * app from its card.
  */
 export function startNavigation(target: NavigationTarget) {
-  showToast('Directions are coming soon');
+  router.push({ pathname: '/map', params: { sidequestId: target.sidequestId } });
 }

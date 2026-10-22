@@ -100,6 +100,13 @@ This build drops the current Moon / DM Sans system in `src/design/` entirely. It
 > - **Profile photo and banner:** tap the avatar to pick a photo (re-encoded, no location). The banner picks the most colourful sidequest photo (Hasler–Süsstrunk colourfulness, measured on a 32px canvas on web; seeded scores on iOS).
 > - The sections below describe the earlier deck version and are kept for history.
 
+> **Changed 2026-10-22: the story layer.** Direction by Fable, built by Opus 5.5. The thread: a story that isn't fed to you is written by chance and by small things other people leave behind.
+> - **Suggest a sidequest:** a glass speech-bubble button top left of the Draw (and a card on Profile) opens a sheet: a place (with "how far from you" and "what kind of place" chips), something to do there, or both. It goes straight into the current city's pool (`UserPlaceProvider`, `source: 'user'`; activities via `userActivitiesFor`), stored on device under `v2Suggestions`. One a day by the local calendar; after that the sheet shows today's slip. No moderation in this build, and no counts or likes anywhere.
+> - **The place draw is now uniform:** `scoreForDraw` and the top-8 weighting are gone. Every open place in the radius has the same odds, so a suggestion from yesterday is as likely as a landmark. (The mock provider's nearest-25 cut is lifted for the draw too.)
+> - **Badges:** Word of Mouth, Local Knowledge, Cartographer, Folklore at 1 / 5 / 10 / 25 suggestions (a day, a week, two weeks, a month of showing up). They're struck SVG medals with a Garamond numeral (`BadgeArt`). Local Legend now means finishing a sidequest at a place you suggested. Celebrations show on Draw, Profile and Library, only on the screen in front.
+> - **Map (`/map`):** Get directions opens a simulated 3D paper-model of the city (three.js on web, an isometric SVG elsewhere): it finds you, then draws a walking route to the place, with Open in Maps for the real thing. Browsing (the city line sheet, **Look around**) shows a random 14 identical pins, reshuffled every visit; tap one to read a line about it. No search, no list, no ratings, no counts.
+> - **Why Sidequest:** onboarding opens with "Nothing here is / fed to you." under the ornate arch, and the same story lives at Settings > Why Sidequest (`/about`).
+
 ### 3.1 Home = the Draw screen
 
 ```
@@ -221,29 +228,26 @@ The scratch card remains the signature reveal for both stages, the one that peop
 | Lone Wolf | complete 10 solo |
 | Lucky Draw | complete a Legendary |
 | No Rerolls | complete a quest drawn with zero rerolls |
-| Local Legend | 3 of your submitted ideas are approved |
+| Local Legend | complete a sidequest at a place you suggested |
 | Touch Grass | 5 Nature quests |
+| Word of Mouth | suggest 1 sidequest |
+| Local Knowledge | suggest 5 |
+| Cartographer | suggest 10 |
+| Folklore | suggest 25 |
 
-Badge rules live in data (`src/data/badges.ts`) and are checked each time a quest is completed.
+Badge rules live in data (`src/data/badges.ts`) and are checked each time a quest is completed or a suggestion goes in.
 
 ### 4.4 Suggest a sidequest (crowdsourcing)
 
-**Entry points:** "Suggest a sidequest" on the Profile, and "Know a better one?" under a result card.
+*(Rewritten 2026-10-22.)*
 
-**The form uses these Bencho blocks:**
-- `label-input` for the place, activity and city fields
-- `seek` to search for a place
-- `tag-input` for vibe tags
-- `fold-dropdown` for quest type
-- `upload-dropzone` for an optional photo
-- `form-error` for validation
+**Entry points:** the speech-bubble button top left of the Draw, and the "Suggest a sidequest" card on Profile.
 
-**After submitting:**
-- Bencho `feedback-bar` says thanks, with the **Sent** sound.
-- The submission goes into a moderation queue: `pending → approved | rejected`.
-- Approved ideas join that city's draw pool with `source: 'user'`, and the submitter gets credit.
+**The sheet:** a place ("Somewhere worth a detour") with how far from you (Right here / A short walk / Across town) and what kind (Food, Coffee or sweets, Outside, Quiet, Art or culture, Something else), and something to do there ("One small thing"). Either or both. We never ask for an exact pin: the place lands at a seeded spot in that distance ring.
 
-**Moderation in v2:** an admin view (the Supabase dashboard or a hidden screen) plus an automated profanity filter.
+**After submitting:** it joins the pool for the current city right away, with the same odds as everything else. "In the pool. Someone might draw it today." One a day; the sheet then shows today's slip until tomorrow.
+
+**Later, with accounts:** suggestions sync to Supabase and join other people's pools, with a profanity filter and reporting. Still no counts, likes or ranking.
 
 ### 4.5 The Sidequesters wall (global feed)
 
@@ -461,7 +465,7 @@ The activity is then picked by rarity weight.
 
 ## 10. Out of scope for v2
 
-Push notifications and background discovery, comments, a friends or follow graph, chat, paid rerolls or any other monetization, Android polish (it must still build), and maps inside the app.
+Push notifications and background discovery, comments, a friends or follow graph, chat, paid rerolls or any other monetization, and Android polish (it must still build). (In-app maps moved in on 2026-10-22, as a simulated model, not real tiles.)
 
 ## 11. Success metrics
 

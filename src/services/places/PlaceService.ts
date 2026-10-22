@@ -4,6 +4,7 @@ import type { CachedPlaces } from '@/types';
 import { CuratedPlaceProvider } from './CuratedPlaceProvider';
 import { GooglePlacesProvider } from './GooglePlacesProvider';
 import { MockPlaceProvider } from './MockPlaceProvider';
+import { UserPlaceProvider } from './UserPlaceProvider';
 import type { PlaceProvider, PlaceSearchFilters } from './types';
 
 export type ProviderMode = 'mock' | 'google' | 'curated' | 'composite';
@@ -15,6 +16,7 @@ export class PlaceService {
   private mock = new MockPlaceProvider();
   private curated = new CuratedPlaceProvider();
   private google = new GooglePlacesProvider();
+  private user = new UserPlaceProvider();
   private mode: ProviderMode;
 
   constructor(mode?: ProviderMode) {
@@ -31,7 +33,16 @@ export class PlaceService {
     return this.mode;
   }
 
+  /** Suggestions from people in the pool; they join every provider mode */
+  setUserPlaces(places: Place[]): void {
+    this.user.setPlaces(places);
+  }
+
   private providers(): PlaceProvider[] {
+    return [...this.base(), this.user];
+  }
+
+  private base(): PlaceProvider[] {
     switch (this.mode) {
       case 'google':
         return this.google.isConfigured()

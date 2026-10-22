@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
 import { ConfettiBurst } from '@/features/reveal';
+import { SuggestSheet } from '@/features/suggest/SuggestSheet';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Close } from '@/features/folders/icons';
@@ -46,6 +48,7 @@ export function DrawScreen() {
   const [printed, setPrinted] = useState(false);
   const [confetti, setConfetti] = useState(false);
   const [radiusOpen, setRadiusOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   /* the idle note prints on arrival and tears off when a sidequest prints */
   const [idleOut, setIdleOut] = useState(true);
@@ -185,7 +188,7 @@ export function DrawScreen() {
             the controls live in a dock at the bottom, so nothing above the
             printer changes size when a print starts */}
         <View style={styles.page}>
-          <Header minimal={onPaper} />
+          <Header minimal={onPaper} onSuggest={() => !printing && setSuggestOpen(true)} />
           <CityLine onOpen={() => setRadiusOpen(true)} />
 
           <View style={[styles.printerArea, { paddingTop: archTop }]}>
@@ -253,6 +256,8 @@ export function DrawScreen() {
       )}
       <ConfettiBurst fire={confetti} onDone={() => setConfetti(false)} />
       <RadiusSheet visible={radiusOpen} onClose={() => setRadiusOpen(false)} />
+      <SuggestSheet visible={suggestOpen} onClose={() => setSuggestOpen(false)} />
+      <BadgeCelebration delayMs={600} />
       <Sheet visible={setupOpen} onClose={() => setSetupOpen(false)} title="New sidequest">
         {/* the chips carry their own gutter for the home screen; the sheet already has one */}
         <View style={styles.sheetChips}>

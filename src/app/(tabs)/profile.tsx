@@ -1,14 +1,17 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { GalleryRow } from '@/features/profile/GalleryRow';
 import { ProfileHeader } from '@/features/profile/ProfileHeader';
 import { SidequestCalendar } from '@/features/profile/SidequestCalendar';
 import { useMostColorful } from '@/features/profile/colorfulness';
+import { Chevron } from '@/features/folders/icons';
 import { pickAvatar } from '@/features/folders/pickPhotos';
+import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
+import { SuggestSheet } from '@/features/suggest/SuggestSheet';
 import { TrophyCase } from '@/features/profile/TrophyCase';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { Paper, Text, TornPaper, color, radius, space } from '@/theme';
+import { Paper, Text, TornPaper, color, space } from '@/theme';
 import type { QuestFolder } from '@/types';
 import { LiquidToggle, showToast, useTabBarSpace } from '@/ui';
 
@@ -23,6 +26,7 @@ export default function ProfileScreen() {
   const folders = useSidequestStore((s) => s.folders);
   const badges = useSidequestStore((s) => s.badges);
   const updatePrefs = useSidequestStore((s) => s.updatePrefs);
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   const stats = useMemo(() => {
     const done = quests.filter((q) => q.status === 'completed');
@@ -82,24 +86,23 @@ export default function ProfileScreen() {
           />
         </TornPaper>
 
-        <TornPaper seed="profile-suggest" style={[styles.cardWrap, { opacity: 0.55 }]} contentStyle={styles.card}>
-        <View
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md }}
-          accessible
+        <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: true }}
-          accessibilityLabel="Suggest a sidequest. Coming soon"
+          accessibilityLabel="Suggest a sidequest"
+          onPress={() => setSuggestOpen(true)}
+          style={({ pressed }) => [styles.cardWrap, { transform: [{ scale: pressed ? 0.98 : 1 }] }]}
         >
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="headline">Suggest a sidequest</Text>
-            <Text variant="caption" style={{ color: color.ink2 }}>Send us an idea for the deck</Text>
-          </View>
-          <View style={styles.soon}>
-            <Text variant="caption" style={{ color: color.ink2, fontWeight: '600' }}>Coming soon</Text>
-          </View>
-        </View>
-        </TornPaper>
+          <TornPaper seed="profile-suggest" contentStyle={styles.card}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="headline">Suggest a sidequest</Text>
+              <Text variant="caption" style={{ color: color.ink2 }}>One a day. It joins the pool for everyone here</Text>
+            </View>
+            <Chevron dir="right" tint={color.ink2} />
+          </TornPaper>
+        </Pressable>
       </ScrollView>
+      <SuggestSheet visible={suggestOpen} onClose={() => setSuggestOpen(false)} />
+      <BadgeCelebration delayMs={600} />
     </Paper>
   );
 }
@@ -107,5 +110,4 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   cardWrap: { marginHorizontal: space.xl },
   card: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, minHeight: 72 },
-  soon: { paddingHorizontal: 10, height: 26, borderRadius: radius.pill, backgroundColor: color.line, justifyContent: 'center' },
 });

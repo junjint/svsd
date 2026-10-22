@@ -67,7 +67,7 @@ export class GooglePlacesProvider implements PlaceProvider {
           location,
           radiusMeters,
           includedTypes,
-          maxResultCount: filters?.maxResults ?? 20,
+          maxResultCount: Math.min(filters?.maxResults ?? 20, 20),
         }),
       });
 
