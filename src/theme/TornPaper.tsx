@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 
 const CRINKLE = require('../../assets/receipt/crinkle.webp');
@@ -60,6 +61,7 @@ export function TornPaper({
   style,
   contentStyle,
   edges = 'both',
+  dimensional = false,
 }: {
   /** anything stable (an id) so the tear doesn't change between renders */
   seed: string;
@@ -67,14 +69,23 @@ export function TornPaper({
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
   edges?: 'both' | 'top' | 'bottom';
+  dimensional?: boolean;
 }) {
   return (
-    <View style={[WRAP, style]}>
+    <View style={[WRAP, dimensional && styles.lifted, style]}>
       {edges !== 'bottom' && <Edge seed={`${seed}:top`} up />}
       <View style={[styles.body, contentStyle]}>
-        <Image source={CRINKLE} contentFit="cover" style={[StyleSheet.absoluteFill, { mixBlendMode: 'multiply', opacity: 0.7 }]} pointerEvents="none" />
+        <Image source={CRINKLE} contentFit="cover" style={[StyleSheet.absoluteFill, { mixBlendMode: 'multiply', opacity: dimensional ? 0.35 : 0.7 }]} pointerEvents="none" />
+        {dimensional && <>
+          <LinearGradient pointerEvents="none" colors={['rgba(70,61,47,0.06)', 'rgba(255,255,255,0.1)', 'transparent', 'rgba(92,81,65,0.015)', 'rgba(255,255,255,0.5)', 'rgba(70,61,47,0.05)']} locations={[0,0.035,0.12,0.75,0.96,1]} start={{x:0,y:0}} end={{x:1,y:0}} style={StyleSheet.absoluteFill} />
+          <Image pointerEvents="none" source={require('../../assets/receipt/ink.webp')} contentFit="cover" style={[StyleSheet.absoluteFill, { opacity: 0.012, mixBlendMode: 'multiply' }]} />
+          <LinearGradient pointerEvents="none" colors={['rgba(55,48,38,0.04)', 'transparent', 'rgba(255,255,255,0.4)']} style={{position:'absolute',left:0,right:0,top:'38%',height:12,transform:[{rotate:'-3deg'}]}} />
+        </>}
         {children}
       </View>
+      {dimensional && [false, true].map(right => <Svg key={String(right)} pointerEvents="none" width={4} height="100%" viewBox="0 0 4 100" preserveAspectRatio="none" style={{position:'absolute',top:0,bottom:0,...(right ? {right:-2} : {left:-2}),transform:[{scaleX:right ? -1 : 1}]}}>
+        <Path d={`M4,0 L${Array.from({length:100},(_,i)=>`${1 + ((i * 17 + seed.length * 3) % 11) / 5},${i}`).join(' L')} L4,100 Z`} fill="#F9F8F4" stroke="rgba(82,72,58,0.14)" strokeWidth={0.3} />
+      </Svg>)}
       {edges !== 'top' && <Edge seed={`${seed}:bottom`} up={false} />}
     </View>
   );
@@ -87,5 +98,6 @@ const WRAP: ViewStyle =
     : { shadowColor: '#15100E', shadowOpacity: 0.12, shadowRadius: 9, shadowOffset: { width: 0, height: 5 } };
 
 const styles = StyleSheet.create({
+  lifted: { boxShadow: '5px 10px 18px rgba(32,27,21,0.20), 1px 2px 3px rgba(32,27,21,0.18)' },
   body: { backgroundColor: PAPER, overflow: 'hidden' },
 });

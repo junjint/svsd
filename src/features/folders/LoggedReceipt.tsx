@@ -1,12 +1,15 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text, TornPaper, color, fonts, space } from '@/theme';
+import { Text, TornPaper, color, fonts } from '@/theme';
 import type { DrawnSidequest, QuestFolder } from '@/types';
 import { Photo } from './Photo';
-import { partyLabel, shortDate } from './format';
+import { partyLabel } from './format';
+import { Image } from 'expo-image';
+import { useSidequestStore } from '@/stores/sidequestStore';
 import { moodLabel } from './viewer/NoteSheet';
 
 /** A saved log, rendered from its persisted content without changing original photos. */
 export function LoggedReceipt({ folder, quest, onPhoto }: { folder: QuestFolder; quest?: DrawnSidequest; onPhoto: (index: number) => void }) {
+  const profile = useSidequestStore(s => s.prefs);
   const ref = folder.id.replace(/[^a-z0-9]/gi, '').slice(-10).toUpperCase();
   const date = quest?.completedAt ?? folder.createdAt;
   const rows = [
@@ -17,50 +20,50 @@ export function LoggedReceipt({ folder, quest, onPhoto }: { folder: QuestFolder;
     ['MOOD', moodLabel(folder.mood)],
     ['RATING', folder.rating ? `${folder.rating} / 5` : undefined],
   ].filter((row) => row[1]);
-  return <TornPaper seed={folder.id} contentStyle={styles.paper}>
+  return <TornPaper dimensional seed={folder.id} contentStyle={styles.paper}>
     <Text style={styles.brand}>SIDEQUEST</Text>
     <Text style={styles.center}>A LITTLE ADVENTURE, KEPT.</Text>
-    <View style={styles.band}>
-      <View style={styles.row}>
-        <Text style={styles.bandText}>{shortDate(date)}</Text>
-        <Text style={styles.bandText}>{new Date(date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</Text>
-      </View>
-      <Text style={styles.bandText}>NO. {ref}</Text>
+    <View style={styles.rule} />
+    <View style={styles.row}>
+      <Text style={styles.small}>{new Date(date).toLocaleDateString('en-US', {month:'short',day:'2-digit'}).toUpperCase()} / {new Date(date).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'})}</Text>
+      <Text style={styles.small}>NO. {ref}</Text>
+    </View>
+    <View style={styles.byline}>
+      {profile.avatarUri && <Image source={{uri:profile.avatarUri}} contentFit="cover" style={{width:26,height:26,borderRadius:13,filter:'grayscale(100%)'}} />}
+      <Text style={styles.author}>{(profile.displayName || 'You').toUpperCase()}{quest?.cityLabel ? ` / ${quest.cityLabel.toUpperCase()}` : ''}</Text>
     </View>
     <View style={styles.rule} />
-    {quest?.storyHook && <Text style={styles.copy}>{quest.storyHook}</Text>}
     <Text accessibilityRole="header" style={styles.title}>{folder.title}</Text>
-    <View style={styles.rule} />
-    {rows.map(([key, value]) => <View key={key} style={styles.row}><Text style={styles.small}>{key}</Text><Text style={[styles.small, styles.value]}>{value}</Text></View>)}
     {folder.photos.map((photo, i) => <View key={photo.id} style={styles.photoBlock}>
       <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Open original photo ${i + 1}`} onPress={() => onPhoto(i)}>
-        <Photo uri={photo.uri} radius={0} contentFit="contain" style={{width:'100%',aspectRatio: photo.width && photo.height ? photo.width / photo.height : 1, filter:'grayscale(1) contrast(1.25)'}} />
+        <Photo uri={photo.uri} radius={0} contentFit="contain" style={{width:'100%',aspectRatio: photo.width && photo.height ? photo.width / photo.height : 1, filter:'grayscale(100%)'}} />
       </Pressable>
       <Text style={styles.photoLabel}>MOMENT {String(i + 1).padStart(2,'0')} / {String(folder.photos.length).padStart(2,'0')}</Text>
     </View>)}
-    {folder.note && <><View style={styles.rule} /><Text style={styles.small}>A NOTE TO REMEMBER</Text><Text style={styles.copy}>{folder.note}</Text></>}
+    {quest?.storyHook && <Text style={styles.copy}>{quest.storyHook}</Text>}
+    <View style={styles.rule} />
+    {rows.map(([key, value]) => <View key={key} style={styles.row}><Text style={styles.small}>{key}</Text><Text style={[styles.small, styles.value]}>{value}</Text></View>)}
+    {folder.note && <Text style={styles.note}>“{folder.note}”</Text>}
     <View style={styles.rule} />
     <View style={styles.row}><Text style={styles.total}>MEMORIES KEPT</Text><Text style={styles.total}>{String(folder.photos.length).padStart(2,'0')}</Text></View>
     <View style={styles.row}><Text style={styles.small}>STATUS</Text><Text style={styles.small}>{quest?.status === 'completed' ? 'COMPLETED' : 'SAVED'}</Text></View>
-    <View style={styles.footer}><Text style={styles.thanks}>Thanks for taking the detour.</Text><Text style={styles.center}>KEEP THIS ONE FOR THE STORY.</Text></View>
-    <View accessible={false} accessibilityElementsHidden style={styles.barcode}>{Array.from(ref + ref).map((c,i)=><View key={i} style={{width:1+c.charCodeAt(0)%3,height:36,backgroundColor:color.ink,marginRight:1+i%3}} />)}</View>
-    <Text style={[styles.center,{fontSize:9}]}>{ref} · YOUR COPY</Text>
+    <Text style={styles.center}>THANKS FOR TAKING THE DETOUR.</Text>
+    <View accessible={false} accessibilityElementsHidden style={styles.barcode}>{Array.from({length:44},(_,i)=><View key={i} style={{width:1+(i*7+ref.charCodeAt(i%ref.length))%3,height:26,backgroundColor:color.ink,marginRight:2}} />)}</View>
   </TornPaper>;
 }
 const styles = StyleSheet.create({
- paper:{paddingHorizontal:22,paddingVertical:28,gap:8},
- brand:{fontFamily:fonts.monoBold,fontSize:30,letterSpacing:-1.5,textAlign:'center'},
- center:{fontFamily:fonts.mono,fontSize:10,lineHeight:16,textAlign:'center'},
- band:{backgroundColor:color.ink,paddingVertical:12,paddingHorizontal:12,marginVertical:12,gap:6},
- bandText:{fontFamily:fonts.mono,fontSize:10,lineHeight:17,color:color.white},
- row:{flexDirection:'row',justifyContent:'space-between',gap:12,alignItems:'flex-start'},
- small:{fontFamily:fonts.mono,fontSize:10,lineHeight:17},
+ paper:{paddingHorizontal:16,paddingTop:22,paddingBottom:14,gap:6},
+ brand:{fontFamily:fonts.monoBold,fontSize:26,letterSpacing:-1,textAlign:'center'},
+ center:{fontFamily:fonts.mono,fontSize:9,textAlign:'center',letterSpacing:0.4},
+ byline:{flexDirection:'row',alignItems:'center',gap:8},author:{fontFamily:fonts.monoBold,fontSize:10,flex:1},
+ row:{flexDirection:'row',justifyContent:'space-between',gap:12},
+ small:{fontFamily:fonts.mono,fontSize:10,lineHeight:16},
  value:{flex:1,textAlign:'right',textTransform:'uppercase'},
- rule:{borderTopWidth:1,borderStyle:'dashed',borderColor:color.ink3,marginVertical:12},
- title:{fontFamily:fonts.monoBold,fontSize:19,lineHeight:26,textAlign:'left',marginBottom:8},
- copy:{fontFamily:fonts.mono,fontSize:12,lineHeight:20},
- photoBlock:{marginTop:18,gap:6},photoLabel:{fontFamily:fonts.mono,fontSize:9,textAlign:'center'},
- total:{fontFamily:fonts.monoBold,fontSize:14,lineHeight:22},
- footer:{alignItems:'center',gap:8,paddingVertical:space.xl},thanks:{fontFamily:fonts.serifItalic,fontSize:20,textAlign:'center'},
- barcode:{flexDirection:'row',justifyContent:'center',overflow:'hidden',marginBottom:4},
+ rule:{borderTopWidth:1,borderStyle:'dashed',borderColor:color.ink3,marginVertical:4},
+ title:{fontFamily:fonts.monoBold,fontSize:20,lineHeight:25,marginVertical:4},
+ copy:{fontFamily:fonts.mono,fontSize:11,lineHeight:18},
+ note:{fontFamily:fonts.serifItalic,fontSize:18,lineHeight:22,marginTop:8,marginBottom:4},
+ photoBlock:{marginVertical:6,gap:6},photoLabel:{fontFamily:fonts.mono,fontSize:9,textAlign:'center',letterSpacing:0.4},
+ total:{fontFamily:fonts.monoBold,fontSize:13},
+ barcode:{flexDirection:'row',justifyContent:'center',overflow:'hidden',marginTop:10},
 });

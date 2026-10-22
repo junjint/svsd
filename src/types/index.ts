@@ -371,6 +371,7 @@ export interface V2Preferences extends DrawSettings {
   soundsEnabled: boolean;
   hapticsEnabled: boolean;
   alwaysSkipReveals: boolean;
+  demoEnabled: boolean;
   profileVisibility: 'public' | 'private';
   displayName?: string;
   /** a private, location-free copy of the photo they picked */
@@ -386,6 +387,7 @@ export const DEFAULT_V2_PREFERENCES: V2Preferences = {
   soundsEnabled: true,
   hapticsEnabled: true,
   alwaysSkipReveals: false,
+  demoEnabled: false,
   profileVisibility: 'private',
   onboarded: false,
 };

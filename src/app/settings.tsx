@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -6,7 +6,7 @@ import { ConfirmSheet } from '@/features/folders/ConfirmSheet';
 import { forgetPhoto } from '@/features/folders/pickPhotos';
 import { RadiusPicker } from '@/features/location';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { Logo, Paper, Text, TornPaper, color, radius as R, space } from '@/theme';
+import { Logo, Paper, Text, TornPaper, color, space } from '@/theme';
 import { LiquidToggle, showToast } from '@/ui';
 
 export default function SettingsScreen() {
@@ -15,7 +15,6 @@ export default function SettingsScreen() {
   const clearAll = useSidequestStore((s) => s.clearAll);
   const [confirmClear, setConfirmClear] = useState(false);
   const [radius, setRadius] = useState(prefs.radiusMiles);
-  useEffect(() => setRadius(prefs.radiusMiles), [prefs.radiusMiles]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 
@@ -41,6 +40,14 @@ export default function SettingsScreen() {
             value={prefs.alwaysSkipReveals}
             onChange={(v) => void updatePrefs({ alwaysSkipReveals: v })}
           />
+        </Group>
+
+        <Group title="Demo">
+          <ToggleRow label="Demo" hint="Auto-print the Literati Book Store sidequest, 200 ft away" value={prefs.demoEnabled} onChange={(enabled) => {
+            void updatePrefs({ demoEnabled: enabled }).then(() => {
+              if (enabled) router.replace({ pathname: '/draw', params: { demoPrint: String(Date.now()) } });
+            });
+          }} />
         </Group>
 
         <Group title="Default radius">

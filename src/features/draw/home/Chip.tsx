@@ -17,7 +17,6 @@ export function Chip({
   a11yLabel,
   grow,
   role = 'checkbox',
-  outlined = false,
 }: {
   label: string;
   selected: boolean;
@@ -27,8 +26,6 @@ export function Chip({
   /** stretch to share the row with its siblings */
   grow?: boolean;
   role?: 'checkbox' | 'radio';
-  /** Keep the neutral outline while retaining the accessible selection state. */
-  outlined?: boolean;
 }) {
   const sm = size === 'sm';
   return (
@@ -41,7 +38,7 @@ export function Chip({
       accessibilityLabel={a11yLabel ?? label}
       outerStyle={grow ? styles.grow : undefined}
     >
-      <ChipBody label={label} selected={selected && !outlined} sm={sm} />
+      <ChipBody label={label} selected={selected} sm={sm} />
     </PressScale>
   );
 }

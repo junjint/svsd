@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 import { feedback } from '@/services/sound';
@@ -15,11 +16,13 @@ const FOCUS: { id: FocusSetting; label: string }[] = [
 ];
 
 export function QuestTypeChips() {
+  const [randomSelected, setRandomSelected] = useState(false);
   const questType = useSidequestStore((s) => s.prefs.questType);
   const focus = useSidequestStore((s) => s.prefs.focus);
   const updatePrefs = useSidequestStore((s) => s.updatePrefs);
 
   const pick = (patch: { questType?: QuestType; focus?: FocusSetting }) => {
+    if (patch.questType) setRandomSelected(false);
     feedback('chipSelect');
     void updatePrefs(patch);
   };
@@ -40,7 +43,7 @@ export function QuestTypeChips() {
           ))}
         </View>
         <View style={styles.row}>
-          <Chip grow outlined label={QUEST_TYPE_LABELS.random} selected={questType === 'random'} onPress={() => pick({ questType: 'random' })} />
+          <Chip grow label={QUEST_TYPE_LABELS.random} selected={questType === 'random' && randomSelected} onPress={() => { pick({ questType: 'random' }); setRandomSelected(true); }} />
         </View>
       </View>
 

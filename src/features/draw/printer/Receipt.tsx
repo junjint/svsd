@@ -1,5 +1,6 @@
 import { StyleSheet, View, type TextStyle } from 'react-native';
 import { Image } from 'expo-image';
+import { DEMO_PRINT_CITY } from '@/data/demoPrint';
 import { activityText } from '@/features/reveal/content';
 import { travelLabel } from '@/services/draw/rules';
 import { Text, fonts } from '@/theme';
@@ -53,6 +54,7 @@ export function Receipt({
   cityLabel: string;
   width: number;
 }) {
+  cityLabel = draw.demo ? DEMO_PRINT_CITY : cityLabel;
   const place = draw.place!;
   const activity = draw.activity!;
   const meters = distanceMeters(from, place.coordinates);
@@ -72,11 +74,11 @@ export function Receipt({
         </Ink>
         <Rule />
 
-        <Ink style={styles.label}>WHILE YOU'RE IN {cityLabel.toUpperCase()}, GO TO</Ink>
+        <Ink style={styles.label}>WHILE YOU&apos;RE IN {cityLabel.toUpperCase()}, GO TO</Ink>
         <Ink bold style={styles.place}>
           {clean(place.name)}
         </Ink>
-        <Ink style={styles.small}>{travelLabel(meters).toUpperCase()}</Ink>
+        <Ink style={styles.small}>{draw.demo ? '200 FT AWAY' : travelLabel(meters).toUpperCase()}</Ink>
         <Rule />
 
         <Ink style={styles.label}>AND THEN</Ink>

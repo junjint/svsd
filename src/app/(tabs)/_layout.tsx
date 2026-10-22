@@ -13,7 +13,7 @@ export default function TabsLayout() {
         tabBar={(props) => <TabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: color.paper } }}
       >
-        <Tabs.Screen name="draw" options={{ title: 'New sidequest' }} />
+        <Tabs.Screen name="draw" options={{ title: 'New' }} />
         <Tabs.Screen name="gallery" options={{ title: 'Gallery' }} />
         <Tabs.Screen name="folders" options={{ title: 'Library' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
