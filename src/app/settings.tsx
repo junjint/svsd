@@ -47,6 +47,14 @@ export default function SettingsScreen() {
           />
         </Group>
 
+        <Group title="Demo">
+          <ToggleRow label="Demo" hint="Auto-print the Literati Book Store sidequest, 200 ft away" value={prefs.demoEnabled} onChange={(enabled) => {
+            void updatePrefs({ demoEnabled: enabled }).then(() => {
+              if (enabled) router.replace({ pathname: '/draw', params: { demoPrint: String(Date.now()) } });
+            });
+          }} />
+        </Group>
+
         <Group title="Default radius">
           <View style={{ padding: space.lg, gap: space.md }}>
             <Text variant="callout">How far the Draw looks for places</Text>

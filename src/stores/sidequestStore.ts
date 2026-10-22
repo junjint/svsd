@@ -1,3 +1,4 @@
+import { DEMO_PRINT_ACTIVITY, DEMO_PRINT_CITY, DEMO_PRINT_PLACE } from '@/data/demoPrint';
 import { create } from 'zustand';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
@@ -42,6 +43,7 @@ export type DrawPhase = 'shuffling' | 'place' | 'activity' | 'result' | 'empty';
 
 export interface DrawSession {
   id: string;
+  demo?: boolean;
   phase: DrawPhase;
   settings: DrawSettings;
   rarity: Rarity;
@@ -324,10 +326,11 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         placeLocked: false,
         seenActivityIds: [] as string[],
       };
-      const place = await drawPlace({ location: location.coords, settings, excludePlaceIds: recentPlaceIds() });
-      const options = place ? activitiesFor(base, place) : [];
+      const place = prefs.demoEnabled ? DEMO_PRINT_PLACE : await drawPlace({ location: location.coords, settings, excludePlaceIds: recentPlaceIds() });
+      const options = prefs.demoEnabled ? [DEMO_PRINT_ACTIVITY] : place ? activitiesFor(base, place) : [];
       const session: DrawSession = {
         ...base,
+        demo: prefs.demoEnabled,
         phase: place && options.length ? 'shuffling' : 'empty',
         place,
         activityOptions: options,
@@ -350,7 +353,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
 
     canReroll: (stage) => {
       const d = get().draw;
-      if (!d) return false;
+      if (!d || d.demo) return false;
       if (stage === 'place' && d.placeLocked) return false;
       return d.rerolls[stage] < REROLLS_PER_STAGE;
     },
@@ -597,7 +600,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
 function buildFromDraw(s: SidequestState): DrawnSidequest | null {
   const d = s.draw;
   if (!d || !d.place || !d.activity) return null;
-  return buildDrawnQuest({
+  const quest = buildDrawnQuest({
     place: d.place,
     activity: d.activity,
     location: s.location.coords,
@@ -605,6 +608,7 @@ function buildFromDraw(s: SidequestState): DrawnSidequest | null {
     rarity: d.rarity,
     revealStyle: d.revealStyle,
     rerollsUsed: d.rerolls,
-    cityLabel: s.location.cityLabel,
+    cityLabel: d.demo ? DEMO_PRINT_CITY : s.location.cityLabel,
   });
+  return d.demo ? { ...quest, distanceMeters: 60.96, estimatedWalkingMinutes: 1 } : quest;
 }

@@ -94,3 +94,13 @@ export function Lock({ size = 12, tint = color.ink3 }: P) {
     </View>
   );
 }
+
+export function PhotoLibrary({ size = 22, tint = color.ink }: P) {
+  return <View style={{ width: size, height: size }}>
+    <View style={{ position: 'absolute', left: 0, top: 4, width: size - 4, height: size - 4, borderWidth: 1.5, borderColor: tint, borderRadius: 3 }} />
+    <View style={{ position: 'absolute', left: 4, top: 0, width: size - 4, height: size - 4, borderWidth: 1.5, borderColor: tint, borderRadius: 3, backgroundColor: color.white, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', left: 3, top: 3, width: 3, height: 3, borderRadius: 2, backgroundColor: tint }} />
+      <View style={{ position: 'absolute', left: 5, top: 9, width: 10, height: 10, borderWidth: 1.5, borderColor: tint, transform: [{ rotate: '45deg' }] }} />
+    </View>
+  </View>;
+}

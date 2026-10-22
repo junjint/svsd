@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
 import { ConfettiBurst } from '@/features/reveal';
@@ -34,6 +34,8 @@ const celebrated = new Set<string>();
  * slide to go, save it, or tear it off.
  */
 export function DrawScreen() {
+  const { demoPrint } = useLocalSearchParams<{ demoPrint?: string }>();
+  const handledDemo = useRef<string | undefined>(undefined);
   const draw = useSidequestStore((s) => s.draw);
   const location = useSidequestStore((s) => s.location);
   const startDraw = useSidequestStore((s) => s.startDraw);
@@ -99,6 +101,13 @@ export function DrawScreen() {
       busy.current = false;
     }
   }, [discardDraw, startDraw, setPhase]);
+
+  useEffect(() => {
+    if (!demoPrint || handledDemo.current === demoPrint) return;
+    handledDemo.current = demoPrint;
+    setSetupOpen(false);
+    void print();
+  }, [demoPrint, print]);
 
   /* let the sheet finish leaving so the printer is in view when it starts */
   const printFromSheet = () => {
@@ -172,7 +181,7 @@ export function DrawScreen() {
 
   // the tab bar's + means "new sidequest": it lands here with the settings sheet open
   const canStart = useRef(false);
-  canStart.current = !onPaper && !printing && !empty;
+  useEffect(() => { canStart.current = !onPaper && !printing && !empty; }, [onPaper, printing, empty]);
   useEffect(() => {
     if (takeNewSidequest() && canStart.current) setSetupOpen(true);
     const on = navigation.addListener as unknown as (e: 'tabPress', cb: () => void) => () => void;
@@ -261,7 +270,7 @@ export function DrawScreen() {
       <Sheet visible={setupOpen} onClose={() => setSetupOpen(false)} title="New sidequest">
         {/* the chips carry their own gutter for the home screen; the sheet already has one */}
         <View style={styles.sheetChips}>
-          <QuestTypeChips />
+          {setupOpen && <QuestTypeChips />}
         </View>
         <PartyControl />
         <PillButton label="Print a sidequest" onPress={printFromSheet} sound={null} />

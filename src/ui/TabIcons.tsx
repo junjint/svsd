@@ -1,3 +1,4 @@
+import { Grid, Plus } from '@/features/folders/icons';
 import { View } from 'react-native';
 
 /* Tab glyphs drawn from plain views (no icon font in the bundle).
@@ -30,5 +31,7 @@ export function ProfileIcon({ tint }: IconProps) {
 
 export const TAB_ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
   folders: FoldersIcon,
+  draw: ({ tint }) => <Plus tint={tint} size={20} />,
+  gallery: ({ tint }) => <Grid tint={tint} size={20} />,
   profile: ProfileIcon,
 };
