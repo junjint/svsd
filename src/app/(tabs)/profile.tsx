@@ -8,6 +8,8 @@ import { Chevron } from '@/features/folders/icons';
 import { pickAvatar } from '@/features/folders/pickPhotos';
 import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
 import { SuggestSheet } from '@/features/suggest/SuggestSheet';
+import { PURPOSE } from '@/features/onboarding/purposeCopy';
+import { WhySheet } from '@/features/profile/WhySheet';
 import { TrophyCase } from '@/features/profile/TrophyCase';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Paper, Text, TornPaper, color, space } from '@/theme';
@@ -26,6 +28,7 @@ export default function ProfileScreen() {
   const badges = useSidequestStore((s) => s.badges);
   const updatePrefs = useSidequestStore((s) => s.updatePrefs);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(false);
 
   const stats = useMemo(() => {
     const done = quests.filter((q) => q.status === 'completed');
@@ -64,22 +67,40 @@ export default function ProfileScreen() {
 
         <TrophyCase earned={badges} />
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Suggest a sidequest"
-          onPress={() => setSuggestOpen(true)}
-          style={({ pressed }) => [styles.cardWrap, { transform: [{ scale: pressed ? 0.98 : 1 }] }]}
-        >
-          <TornPaper seed="profile-suggest" contentStyle={styles.card}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="headline">Suggest a sidequest</Text>
-              <Text variant="caption" style={{ color: color.ink2 }}>One a day. It joins the pool for everyone here</Text>
-            </View>
-            <Chevron dir="right" tint={color.ink2} />
-          </TornPaper>
-        </Pressable>
+        {/* the two cards sit together, closer than the sections above */}
+        <View style={{ gap: space.md }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Suggest a sidequest"
+            onPress={() => setSuggestOpen(true)}
+            style={({ pressed }) => [styles.cardWrap, { transform: [{ scale: pressed ? 0.98 : 1 }] }]}
+          >
+            <TornPaper seed="profile-suggest" contentStyle={styles.card}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="headline">Suggest a sidequest</Text>
+                <Text variant="caption" style={{ color: color.ink2 }}>One a day. It joins the pool for everyone here</Text>
+              </View>
+              <Chevron dir="right" tint={color.ink2} />
+            </TornPaper>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={PURPOSE.story.title}
+            onPress={() => setWhyOpen(true)}
+            style={({ pressed }) => [styles.cardWrap, { transform: [{ scale: pressed ? 0.98 : 1 }] }]}
+          >
+            <TornPaper seed="profile-why" contentStyle={styles.card}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="headline">{PURPOSE.story.title}</Text>
+                <Text variant="caption" style={{ color: color.ink2 }}>{PURPOSE.story.subtitle}</Text>
+              </View>
+              <Chevron dir="right" tint={color.ink2} />
+            </TornPaper>
+          </Pressable>
+        </View>
       </ScrollView>
       <SuggestSheet visible={suggestOpen} onClose={() => setSuggestOpen(false)} />
+      <WhySheet visible={whyOpen} onClose={() => setWhyOpen(false)} />
       <BadgeCelebration delayMs={600} />
     </Paper>
   );
