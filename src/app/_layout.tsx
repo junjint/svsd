@@ -32,6 +32,7 @@ export default function RootLayout() {
               <Stack.Screen name="quest/[id]" />
               <Stack.Screen name="folder/[id]" />
               <Stack.Screen name="gallery/[id]" />
+              <Stack.Screen name="profile" />
               <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
               <Stack.Screen name="about" options={{ presentation: 'modal' }} />
               <Stack.Screen name="map" />

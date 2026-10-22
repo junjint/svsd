@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { PanResponder, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Paper, Text, TornPaper, color, fonts } from '@/theme';
+import { Decor, Paper, Text, TornPaper, color, fonts, space } from '@/theme';
 import { useScreen, useTabBarSpace } from '@/ui';
 
 const RECEIPTS = [
@@ -37,7 +37,17 @@ export default function GalleryScreen() {
   });
   /* eslint-enable react-hooks/refs */
   return <Paper>
-    <View style={styles.header}><Text accessibilityRole="header" style={styles.heading}>Gallery</Text><Text style={styles.micro}>SIDEQUEST STORIES / SAMPLE COLLECTION</Text></View>
+    {/* the same header as the Library: big title, an italic count, a line of specs, chrome in the corner */}
+    <View style={styles.header}>
+      <View style={{ flex: 1, gap: space.sm }}>
+        <View style={styles.titleRow}>
+          <Text variant="display" style={styles.bigTitle} accessibilityRole="header">Gallery</Text>
+          <Text variant="accent" style={styles.titleCount}>({RECEIPTS.length})</Text>
+        </View>
+        <Text variant="label" numberOfLines={1} style={styles.specs}>Sidequest stories · Sample collection</Text>
+      </View>
+      <Decor name="swallow" width={78} style={styles.crest} />
+    </View>
     <View style={styles.stage} onLayout={e => setHeight(e.nativeEvent.layout.height)}>
       <ScrollView {...drag.panHandlers} ref={rail} onContentSizeChange={() => { if (!positioned.current) { positioned.current = true; rail.current?.scrollTo({ x: step, animated: false }); } }} horizontal directionalLockEnabled snapToInterval={step} decelerationRate="fast" disableIntervalMomentum showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: (width - ticketWidth) / 2, gap: 14, paddingTop: 26 }} onScroll={e => setIndex(Math.max(0, Math.min(RECEIPTS.length - 1, Math.round(e.nativeEvent.contentOffset.x / step))))} scrollEventThrottle={32}>
         {RECEIPTS.map((q, i) => <View key={q.name} style={{ width: ticketWidth, height: Math.max(280, height - 26), opacity: index === i ? 1 : 0.65, transform: [{ scale: index === i ? 1 : 0.96 }] }}>
@@ -78,7 +88,7 @@ export default function GalleryScreen() {
   </Paper>;
 }
 const styles = StyleSheet.create({
-  header:{paddingHorizontal:24,paddingTop:14,paddingBottom:22,gap:6},heading:{fontFamily:fonts.sansBold,fontSize:46,lineHeight:46,letterSpacing:-2.2},
+  header:{flexDirection:'row',alignItems:'flex-start',paddingHorizontal:space.xl,paddingTop:space.md,paddingBottom:space.xl},crest:{marginTop:2,marginRight:-6,transform:[{rotate:'-8deg'}]},titleRow:{flexDirection:'row',alignItems:'flex-start',gap:4},bigTitle:{fontSize:46,lineHeight:46,letterSpacing:-2.2},titleCount:{fontSize:26,lineHeight:28,marginTop:-2},specs:{marginTop:space.sm},
   stage:{flex:1},metal:{position:'absolute',top:0,left:0,right:0,height:36,borderTopWidth:1,borderColor:'#f4f4f0',boxShadow:'0 5px 8px rgba(0,0,0,0.24)',overflow:'hidden'},slot:{position:'absolute',bottom:1,height:3,left:0,right:0,backgroundColor:'#434440'},screw:{position:'absolute',top:12,width:8,height:8,borderRadius:4,borderWidth:1,borderColor:'#777',backgroundColor:'#c7c7c3'},
   ticket:{paddingHorizontal:16,paddingTop:22,paddingBottom:14,gap:6},brand:{fontFamily:fonts.monoBold,fontSize:26,textAlign:'center',letterSpacing:-1},micro:{fontFamily:fonts.mono,fontSize:9,textAlign:'center',letterSpacing:0.4},small:{fontFamily:fonts.mono,fontSize:10,lineHeight:16},byline:{fontFamily:fonts.monoBold,fontSize:10},rule:{borderTopWidth:1,borderStyle:'dashed',borderColor:color.ink3,marginVertical:4},row:{flexDirection:'row',justifyContent:'space-between',gap:12},value:{flex:1,textAlign:'right',textTransform:'uppercase'},title:{fontFamily:fonts.monoBold,fontSize:20,lineHeight:25,marginVertical:4},copy:{fontFamily:fonts.mono,fontSize:11,lineHeight:18},note:{fontFamily:fonts.serifItalic,fontSize:18,lineHeight:22,marginTop:8,marginBottom:4},total:{fontFamily:fonts.monoBold,fontSize:13},barcode:{flexDirection:'row',justifyContent:'center',overflow:'hidden',marginTop:10},
 });

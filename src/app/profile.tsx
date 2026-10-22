@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ProfileHeader } from '@/features/profile/ProfileHeader';
 import { SidequestCalendar } from '@/features/profile/SidequestCalendar';
@@ -10,17 +12,19 @@ import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
 import { SuggestSheet } from '@/features/suggest/SuggestSheet';
 import { PURPOSE } from '@/features/onboarding/purposeCopy';
 import { WhySheet } from '@/features/profile/WhySheet';
+import { DEMO_AVATAR } from '@/features/profile/avatar';
 import { TrophyCase } from '@/features/profile/TrophyCase';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { Paper, Text, TornPaper, color, space } from '@/theme';
+import { GlassIconButton, Paper, Text, TornPaper, color, space } from '@/theme';
 import type { QuestFolder } from '@/types';
-import { showToast, useTabBarSpace } from '@/ui';
+import { showToast } from '@/ui';
 
-/** The demo's stand-in until someone picks their own (Unsplash, free licence) */
-const DEMO_AVATAR = 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop&crop=faces&q=80&auto=format';
+/* a page now, not a tab: on the web it brings its own entrance, like the sidequest page */
+const PAGE_IN = Platform.OS === 'web' ? FadeInDown.duration(420).easing(Easing.bezier(0.22, 1, 0.36, 1)) : undefined;
 
 export default function ProfileScreen() {
-  const tabSpace = useTabBarSpace();
+  const insets = useSafeAreaInsets();
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/draw'));
   const prefs = useSidequestStore((s) => s.prefs);
   const cityLabel = useSidequestStore((s) => s.location.cityLabel);
   const quests = useSidequestStore((s) => s.quests);
@@ -51,7 +55,8 @@ export default function ProfileScreen() {
 
   return (
     <Paper>
-      <ScrollView contentContainerStyle={{ paddingBottom: tabSpace, gap: space.xxl }} showsVerticalScrollIndicator={false}>
+      <Animated.View style={{ flex: 1 }} entering={PAGE_IN}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl, gap: space.xxl }} showsVerticalScrollIndicator={false}>
         <ProfileHeader
           name={prefs.displayName}
           city={prefs.confirmedCity ?? cityLabel}
@@ -99,6 +104,13 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      {/* back to the Draw, floating over the banner's corner */}
+      <View style={styles.back} pointerEvents="box-none">
+        <GlassIconButton label="Back" onPress={back}>
+          <Chevron size={14} />
+        </GlassIconButton>
+      </View>
+      </Animated.View>
       <SuggestSheet visible={suggestOpen} onClose={() => setSuggestOpen(false)} />
       <WhySheet visible={whyOpen} onClose={() => setWhyOpen(false)} />
       <BadgeCelebration delayMs={600} />
@@ -107,6 +119,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  back: { position: 'absolute', top: space.sm + 12, left: space.lg + 12 },
   cardWrap: { marginHorizontal: space.xl },
   card: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, minHeight: 72 },
 });

@@ -13,11 +13,11 @@ export default function TabsLayout() {
         tabBar={(props) => <TabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: color.paper } }}
       >
-        {/* Library | Gallery | + | Profile: the Draw is the round button; fixed slots keep it still */}
+        {/* Library | + | Gallery: the Draw is the round button in the middle. Profile isn't a
+            tab: it's a page (src/app/profile.tsx) opened from the Draw's top right */}
         <Tabs.Screen name="folders" options={{ title: 'Library' }} />
-        <Tabs.Screen name="gallery" options={{ title: 'Gallery' }} />
         <Tabs.Screen name="draw" options={{ title: 'New sidequest' }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+        <Tabs.Screen name="gallery" options={{ title: 'Gallery' }} />
       </Tabs>
       <CitySheetHost />
     </View>

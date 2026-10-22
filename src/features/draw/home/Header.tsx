@@ -1,18 +1,20 @@
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { CountPill, GlassIconButton, Logo } from '@/theme';
+import { Image } from 'expo-image';
+import { GlassIconButton, Logo, color } from '@/theme';
+import { DEMO_AVATAR } from '@/features/profile/avatar';
 import { SuggestGlyph } from '@/features/suggest/SuggestGlyph';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { PressScale } from '../PressScale';
 
-const ACTIVE = new Set(['accepted', 'en_route', 'arrived']);
+const AVATAR = 40;
 
 /**
- * Header: suggest · wordmark · count of active quests.
+ * Header: suggest · wordmark · your profile (the only way to it: Profile has no tab).
  * `minimal` drops both sides, leaving room for the receipt's close button.
  */
 export function Header({ minimal = false, onSuggest }: { minimal?: boolean; onSuggest?: () => void }) {
-  const active = useSidequestStore((s) => s.quests.filter((q) => ACTIVE.has(q.status)).length);
+  const avatar = useSidequestStore((s) => s.prefs.avatarUri) ?? DEMO_AVATAR;
 
   return (
     <View style={styles.row}>
@@ -30,15 +32,13 @@ export function Header({ minimal = false, onSuggest }: { minimal?: boolean; onSu
       {minimal ? (
         <View style={styles.side} />
       ) : (
-        <PressScale
-          onPress={() => router.navigate('/folders')}
-          accessibilityLabel={active ? `${active} active ${active === 1 ? 'quest' : 'quests'}` : 'Your folders'}
-          disabled={!active}
-          hitSlop={8}
-          style={[styles.side, { alignItems: 'flex-end' }]}
-        >
-          <CountPill count={active} />
-        </PressScale>
+        <View style={[styles.side, { alignItems: 'flex-end' }]}>
+          <PressScale onPress={() => router.navigate('/profile')} accessibilityLabel="Profile" accessibilityRole="button" hitSlop={8}>
+            <View style={styles.avatar}>
+              <Image source={{ uri: avatar }} contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+            </View>
+          </PressScale>
+        </View>
       )}
     </View>
   );
@@ -54,4 +54,15 @@ const styles = StyleSheet.create({
   },
   side: { width: 56, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
   lead: { flexDirection: 'row', alignItems: 'center' },
+  // a paper ring and a hairline, like the avatar on the Profile banner
+  avatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: color.paper,
+    backgroundColor: color.mist,
+    boxShadow: '0 0 0 1px rgba(21,16,14,0.12), 0 2px 8px rgba(21,16,14,0.10)',
+  },
 });
