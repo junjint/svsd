@@ -94,9 +94,7 @@ export default function WalkingScreen() {
   const lock = useRef(false),
     holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     held = useRef(false);
-  const activity = useRef<HTMLDivElement>(null),
-    swipeStart = useRef(0),
-    swiped = useRef(false);
+  const activity = useRef<HTMLDivElement>(null);
   const { width, height } = useScreen();
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const drag = useRef<{ x: number; y: number; cx: number; cy: number } | null>(
@@ -234,6 +232,13 @@ export default function WalkingScreen() {
     dispatch({ type: "collapse" });
     if (state.phase === "arrived") dispatch({ type: "openArrival" });
     else setDetailsOpen(true);
+  };
+  // no notification banner (it covered the direction card): without a detour,
+  // the island shows what's nearby, then opens it
+  const islandTap = () => {
+    if (detouring) dispatch({ type: "expand" });
+    else if (state.phase === "nearby") dispatch({ type: "open" });
+    else dispatch({ type: "notify" });
   };
   const continueWalk = () => {
     if (state.paused) dispatch({ type: "pause" });
@@ -574,29 +579,28 @@ export default function WalkingScreen() {
               aria-label={
                 detouring
                   ? "Expand Sidequest Live Activity"
-                  : "Show Sidequest notification"
+                  : "Show what's nearby"
               }
               disabled={state.phase === "preview" || state.phase === "done"}
-              aria-expanded={detouring ? state.expanded : state.noticeOpen}
+              aria-expanded={detouring ? state.expanded : undefined}
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  dispatch({ type: detouring ? "expand" : "expandNotice" });
+                  islandTap();
                 }
               }}
               onPointerDown={() => {
                 held.current = false;
                 holdTimer.current = setTimeout(() => {
                   held.current = true;
-                  dispatch({ type: detouring ? "expand" : "expandNotice" });
+                  islandTap();
                 }, 550);
               }}
               onPointerUp={stopHold}
               onPointerCancel={stopHold}
               onPointerLeave={stopHold}
               onClick={() => {
-                if (!held.current)
-                  dispatch({ type: detouring ? "expand" : "notify" });
+                if (!held.current) islandTap();
               }}
             >
               <span className="rw-island-dot" aria-hidden />
@@ -699,102 +703,6 @@ export default function WalkingScreen() {
                               </div>
             )}
           </div>
-          {state.banner && (
-            <div
-              className={`rw-banner ${state.noticeOpen ? "is-open" : ""}`}
-              role="region"
-              aria-label="Sidequest notification"
-              onPointerDown={(e) => {
-                swipeStart.current = e.clientY;
-                swiped.current = false;
-                (e.target as Element).setPointerCapture(e.pointerId);
-              }}
-              onPointerUp={(e) => {
-                if (swipeStart.current - e.clientY > 24) {
-                  swiped.current = true;
-                  dispatch({ type: "dismiss" });
-                } else if (e.clientY - swipeStart.current > 24) {
-                  swiped.current = true;
-                  dispatch({ type: "expandNotice" });
-                }
-              }}
-            >
-              <button
-                className="rw-banner-main"
-                onClick={() => {
-                  if (!swiped.current)
-                    dispatch({
-                      type: state.phase === "arrived" ? "openArrival" : "open",
-                    });
-                  swiped.current = false;
-                }}
-              >
-                <img className="rw-notice-thumb" src={photo} alt="" />
-                <span>
-                  <small>
-                    SIDEQUEST <em>now</em>
-                  </small>
-                  <strong>
-                    {state.phase === "arrived"
-                      ? "You’ve found your little escape."
-                      : "Something good, a little off-route."}
-                  </strong>
-                  <span>{clean(target.placeName)}</span>
-                </span>
-              </button>
-              <button
-                className="rw-notice-expand"
-                aria-label={
-                  state.noticeOpen
-                    ? "Collapse notification preview"
-                    : "Expand notification preview"
-                }
-                aria-expanded={state.noticeOpen}
-                onClick={() =>
-                  dispatch({
-                    type: state.noticeOpen ? "collapseNotice" : "expandNotice",
-                  })
-                }
-              >
-                {state.noticeOpen ? "⌃" : "⌄"}
-              </button>
-              <button
-                className="rw-notice-dismiss"
-                aria-label="Dismiss notification"
-                onClick={() => dispatch({ type: "dismiss" })}
-              >
-                ×
-              </button>
-              {state.noticeOpen && (
-                <div className="rw-notice-detail">
-                  <figure>
-                    <img
-                      src={photo}
-                      alt=""
-                    />
-                  </figure>
-                  <p>{target.activityText}</p>
-                  <div>
-                    <button
-                      onClick={() =>
-                        dispatch({
-                          type:
-                            state.phase === "arrived" ? "openArrival" : "open",
-                        })
-                      }
-                    >
-                      {state.phase === "arrived"
-                        ? "Open sidequest"
-                        : "Have a look"}
-                    </button>
-                    <button onClick={() => dispatch({ type: "dismiss" })}>
-                      Not now
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </DeviceSystemOverlay>
     </div>
