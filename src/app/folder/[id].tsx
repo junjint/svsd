@@ -1,3 +1,5 @@
+import { ReceiptCamera } from '@/features/folders/ReceiptCamera';
+import { LoggedReceipt } from '@/features/folders/LoggedReceipt';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -5,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { ConfirmSheet } from '@/features/folders/ConfirmSheet';
 import { partyLabel, shortDate } from '@/features/folders/format';
-import { Chevron, Dots, Plus } from '@/features/folders/icons';
+import { Chevron, Dots, Plus, PhotoLibrary } from '@/features/folders/icons';
 import { forgetPhoto, pickPhotos } from '@/features/folders/pickPhotos';
 import { Photo } from '@/features/folders/Photo';
 import { FullBleed } from '@/features/folders/viewer/FullBleed';
@@ -17,7 +19,7 @@ import { formatMiles, travelLabel } from '@/services/draw/rules';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Decor, GlassIconButton, Paper, PillButton, Text, color, fonts, rarityColor, space } from '@/theme';
-import { showToast, useScreen } from '@/ui';
+import { LiquidToggle, showToast, useScreen } from '@/ui';
 
 /* Web swaps stack screens with a hard cut, so the page brings its own
    entrance: it rises and fades in. iOS keeps its native slide */
@@ -47,6 +49,7 @@ export default function SidequestPage() {
   const [confirm, setConfirm] = useState(false);
   const [adding, setAdding] = useState(false);
   const [finishedHere, setFinishedHere] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const W = Math.min(width, 430);
   const heroH = Math.round(Math.min(height * 0.5, W * 1.05));
@@ -108,6 +111,28 @@ export default function SidequestPage() {
 
   return (
     <Animated.View style={styles.page} entering={PAGE_IN}>
+      {(quest ? quest.status === 'completed' : folder.createdBy === 'completion') ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 68, paddingHorizontal: space.xl, paddingBottom: insets.bottom + space.xxl, gap: space.xl }}>
+          <LoggedReceipt folder={folder} quest={quest} onPhoto={setViewAt} />
+          <PillButton label={folder.note ? 'Edit note' : 'Add a note'} onPress={() => setSheet('note')} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}><PillButton label="Open Camera" disabled={adding} onPress={() => setCameraOpen(true)} /></View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose photos from library" disabled={adding} onPress={() => void add()} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: color.ink3, alignItems: 'center', justifyContent: 'center', opacity: adding ? 0.4 : 0.65 }}>
+              <PhotoLibrary size={22} />
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="headline">Save to Gallery</Text>
+              <Text variant="caption" style={{ color: color.ink2 }}>Shows on your profile</Text>
+            </View>
+            <LiquidToggle value={folder.savedToGallery} label="Save to Gallery" onChange={(value) => {
+              void updateFolder(folder.id, { savedToGallery: value });
+              showToast(value ? 'Saved to Gallery' : 'Removed from Gallery');
+            }} />
+          </View>
+        </ScrollView>
+      ) : (
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
         {/* the picture of the sidequest */}
         <Pressable
@@ -208,7 +233,7 @@ export default function SidequestPage() {
                   )}
                 </Pressable>
               ))}
-              <Pressable accessibilityRole="button" accessibilityLabel="Add photos" disabled={adding} onPress={() => void add()}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Add photos" disabled={adding} onPress={() => setCameraOpen(true)}>
                 {({ pressed }) => (
                   <View style={[styles.addCell, { width: cell, height: cell, transform: [{ scale: pressed ? 0.96 : 1 }], opacity: adding ? 0.5 : 1 }]}>
                     <Plus size={16} tint={color.ink} />
@@ -226,8 +251,7 @@ export default function SidequestPage() {
                   onComplete={() => {
                     setFinishedHere(true);
                     void completeQuest(quest.id);
-                    // a beat on "Sidequest complete", then back out to the Library to watch it land in its folder
-                    setTimeout(() => router.navigate({ pathname: '/folders', params: { just: folder.id } }), 1100);
+                    // Completion reveals the saved receipt in place.
                   }}
                 />
               </View>
@@ -243,6 +267,7 @@ export default function SidequestPage() {
           </View>
         </View>
       </ScrollView>
+      )}
 
       {/* floating glass controls over the photo */}
       <View style={[styles.top, { paddingTop: insets.top + space.sm }]} pointerEvents="box-none">
@@ -254,6 +279,7 @@ export default function SidequestPage() {
         </GlassIconButton>
       </View>
 
+      {cameraOpen && <ReceiptCamera onClose={() => setCameraOpen(false)} onLibrary={() => { setCameraOpen(false); setTimeout(() => void add(), AFTER_SHEET); }} onSave={async photo => { await addPhotos(folder.id, [photo]); feedback('addPhoto'); showToast('Photo added'); }} />}
       <FullBleed photos={photos} start={viewAt ?? 0} visible={viewAt !== null} onClose={() => setViewAt(null)} />
       <NoteSheet folder={folder} visible={sheet === 'note'} onClose={() => setSheet(null)} onSave={(patch) => void updateFolder(folder.id, patch)} />
       <OptionsSheet

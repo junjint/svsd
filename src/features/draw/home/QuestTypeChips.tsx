@@ -26,7 +26,7 @@ export function QuestTypeChips() {
 
   return (
     <Animated.View layout={LinearTransition.springify().damping(SPRING.damping).stiffness(SPRING.stiffness)} style={{ gap: space.md }}>
-      {/* nothing picked = Random: tap a type to narrow it, tap it again to let go */}
+      {/* Choose a category, or leave the adventure to chance. */}
       <View style={styles.grid} accessibilityLabel="Quest type, optional">
         <View style={styles.row}>
           {TYPES.map((t) => (
@@ -38,6 +38,9 @@ export function QuestTypeChips() {
               onPress={() => pick({ questType: questType === t ? 'random' : t })}
             />
           ))}
+        </View>
+        <View style={styles.row}>
+          <Chip grow outlined label={QUEST_TYPE_LABELS.random} selected={questType === 'random'} onPress={() => pick({ questType: 'random' })} />
         </View>
       </View>
 

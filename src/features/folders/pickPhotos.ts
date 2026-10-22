@@ -98,3 +98,10 @@ export function forgetPhoto(uri: string) {
     /* already gone */
   }
 }
+
+/** Camera captures use the same location-free, persistent copies as library photos. */
+export async function preparePhoto(uri: string): Promise<PickedPhoto | null> {
+  const clean = await stripLocation(uri);
+  if (!clean) return null;
+  return { uri: await keep(clean.uri), width: clean.width, height: clean.height };
+}

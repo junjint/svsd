@@ -1,15 +1,13 @@
 import { useContext, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text as RNText } from '@/theme';
 import type { ViewStyle } from 'react-native';
 import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from 'expo-router/js-tabs';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '@/services/sound';
-import { Frost, color, fonts, shadow } from '@/theme';
+import { Text as RNText, Frost, color, fonts, shadow } from '@/theme';
 import { OPEN_EASE, TILE } from './motion';
 import { TAB_ICONS } from './TabIcons';
-import { askNewSidequest } from './newSidequest';
 
 /* Port of Bencho `tab-bar`: icon tabs on a floating frosted bar. The tab
    you pick opens to show its name, and ONE light tile slides under it on
@@ -45,9 +43,6 @@ export const useTabBarInset = useTabBarSpace;
 
 const openWidth = (labelW: number) => PAD_X + ICON + LABEL_GAP + labelW + PAD_X + 4;
 
-/** The Draw is never a named tab: it's the round + in the middle */
-const PLUS_ROUTE = 'draw';
-
 export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const still = useReducedMotion();
@@ -58,10 +53,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   });
   /* measured label widths; a guess until the hidden copies lay out */
   const [labelW, setLabelW] = useState<number[]>(() => labels.map((l) => l.length * 7.6));
-  /* every named tab gets the same fixed slot, wide enough for the longest
-     name, so opening one never shoves the + off centre */
-  const slot = Math.max(CLOSED, ...state.routes.map((r, i) => (r.name === PLUS_ROUTE ? 0 : openWidth(labelW[i] ?? 40))));
-  const widths = state.routes.map((r) => (r.name === PLUS_ROUTE ? TAB_H : slot));
+  const widths = state.routes.map((_, i) => i === state.index ? openWidth(labelW[i] ?? 40) : CLOSED);
   const tileX = PAD + widths.slice(0, state.index).reduce((a, w) => a + w + GAP, 0);
   const tileW = widths[state.index] ?? CLOSED;
 
@@ -118,19 +110,12 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
             const focused = i === state.index;
             const Icon = TAB_ICONS[route.name];
             const onPress = () => {
-              if (route.name === PLUS_ROUTE) {
-                feedback('drawPress');
-                askNewSidequest();
-              }
               const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!focused && !event.defaultPrevented) {
-                if (route.name !== PLUS_ROUTE) feedback('tabSwitch');
+                feedback('tabSwitch');
                 navigateToTab(route.key);
               }
             };
-            if (route.name === PLUS_ROUTE) {
-              return <PlusTab key={route.key} label={labels[i]!} focused={focused} onPress={onPress} />;
-            }
             return (
               <Tab
                 key={route.key}
@@ -150,26 +135,6 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
         </View>
       </Frost>
     </Animated.View>
-  );
-}
-
-/** New sidequest: a solid ink disc with a plus, the same height as a tab.
-    The sliding tile tucks in behind it when the Draw is open. */
-function PlusTab({ label, focused, onPress }: { label: string; focused: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      role="tab"
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected: focused }}
-      onPress={onPress}
-      style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}
-    >
-      <View style={styles.plus}>
-        <View style={[styles.plusBar, { width: 18, height: 2.2 }]} />
-        <View style={[styles.plusBar, { width: 2.2, height: 18 }]} />
-      </View>
-    </Pressable>
   );
 }
 
@@ -257,14 +222,4 @@ const styles = StyleSheet.create({
   tab: { height: TAB_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   room: { overflow: 'hidden', alignItems: 'flex-end', height: TAB_H, justifyContent: 'center' },
   label: { fontFamily: fonts.sansSemi, fontSize: 14, letterSpacing: -0.1 },
-  plus: {
-    width: TAB_H,
-    height: TAB_H,
-    borderRadius: TAB_H / 2,
-    backgroundColor: color.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.28), 0 4px 12px rgba(21,16,14,0.22)',
-  },
-  plusBar: { position: 'absolute', borderRadius: 1.2, backgroundColor: color.white },
 });
