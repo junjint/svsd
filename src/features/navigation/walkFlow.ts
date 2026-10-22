@@ -9,6 +9,8 @@ export interface WalkState {
   paused: boolean;
   expanded: boolean;
   banner: boolean;
+  noticeOpen: boolean;
+  arrivalOpen: boolean;
 }
 export const initialWalk = (direct = false): WalkState => ({
   phase: direct ? "detouring" : "walking",
@@ -17,6 +19,8 @@ export const initialWalk = (direct = false): WalkState => ({
   paused: false,
   expanded: direct,
   banner: false,
+  noticeOpen: false,
+  arrivalOpen: false,
 });
 export type WalkAction =
   | {
@@ -32,9 +36,42 @@ export type WalkAction =
         | "dismiss"
         | "pause";
     }
+  | {
+      type:
+        | "notify"
+        | "expandNotice"
+        | "collapseNotice"
+        | "openArrival"
+        | "closeArrival";
+    }
   | { type: "replay"; direct?: boolean };
 export function walkReducer(state: WalkState, action: WalkAction): WalkState {
   switch (action.type) {
+    case "openArrival":
+      return state.phase === "arrived"
+        ? {
+            ...state,
+            arrivalOpen: true,
+            banner: false,
+            noticeOpen: false,
+            expanded: false,
+          }
+        : state;
+    case "closeArrival":
+      return { ...state, arrivalOpen: false };
+    case "notify":
+    case "expandNotice":
+      return ["walking", "nearby", "arrived"].includes(state.phase)
+        ? {
+            ...state,
+            phase: state.phase === "walking" ? "nearby" : state.phase,
+            banner: true,
+            noticeOpen: action.type === "expandNotice",
+            expanded: false,
+          }
+        : state;
+    case "collapseNotice":
+      return { ...state, noticeOpen: false };
     case "replay":
       return initialWalk(action.direct);
     case "pause":
@@ -46,14 +83,16 @@ export function walkReducer(state: WalkState, action: WalkAction): WalkState {
     case "collapse":
       return { ...state, expanded: false };
     case "dismiss":
-      return { ...state, banner: false };
+      return { ...state, banner: false, noticeOpen: false };
     case "open":
       return state.phase === "nearby"
-        ? { ...state, phase: "preview", banner: false }
+        ? { ...state, phase: "preview", banner: false, noticeOpen: false }
         : state;
     case "skip":
       return {
         ...state,
+        arrivalOpen: false,
+        noticeOpen: false,
         phase: "done",
         progress:
           state.phase === "arrived" || state.phase === "detouring"
@@ -77,6 +116,8 @@ export function walkReducer(state: WalkState, action: WalkAction): WalkState {
         ? {
             ...state,
             phase: "arrived",
+            arrivalOpen: false,
+            noticeOpen: false,
             progress: 1,
             expanded: false,
             banner: true,
@@ -87,6 +128,7 @@ export function walkReducer(state: WalkState, action: WalkAction): WalkState {
         ? {
             ...state,
             phase: "done",
+            arrivalOpen: false,
             progress: 0,
             expanded: false,
             banner: false,

@@ -28,6 +28,12 @@ This is not native ActivityKit, a system notification extension, MapKit, backgro
 
 ## Shared data
 
+### Generated concept photos and interactive notifications
+
+The four original generated assets (courtyard, art passage, garden and café) are reused as relevant mood previews. Discovery pairs the image with the original printed receipt; arrival and the Live Activity’s “View Sidequest” open photo-led sheets. A folder without a personal cover uses a labeled concept hero. Personal photos always win and generated assets are never inserted into folder photos, visit counts or photo statistics. Labels explicitly say these are AI concepts, not photos of the actual destination; no runtime image generation or external image service is implied.
+
+Notifications now include a photo thumbnail and an expandable image/action preview. Tap the chevron, pull down or press Arrow Down from the island to expand; swipe up, dismiss or choose “Not now” to defer. The compact island can reopen a dismissed nearby suggestion. Arrival dismissal does not force a sheet open; opening and closing arrival details is explicit. The expanded Live Activity provides ETA, accessible progress, pause/resume and “View Sidequest,” while keeping imagery outside the black system activity. Escape collapses the system overlays. Walking waits while a photo detail sheet is open. Rebecca’s home/printer and three-tab structure are unchanged.
+
 All new quests/folders use the existing Zustand `useSidequestStore` and AsyncStorage, not a parallel collection. Accepting a detour leaves any printer draw intact. Completion updates the real native quest and drives existing Library/Profile statistics.
 
 `importPreview.ts` imports earlier `sidequest:app:v3` memories/bookmarks once. IDs are deterministic and hydration deduplicates against existing native records. Visit dates, notes and supported local JPEG/PNG/WebP photo data are preserved. Corrupt/unknown records and remote photo URLs are rejected. Generated fallback imagery is not relabeled as a user photo. The original v3 blob is left untouched except when the user explicitly confirms “Clear all data”; the import marker is written only after persistence succeeds.
@@ -40,7 +46,7 @@ Small non-visual fixes preserve the incoming UI: folders’ landing animation no
 
 - TypeScript check passes.
 - `npm run lint:integration` passes for app routes and integration seams.
-- 100 tests pass across 6 suites, including walking transitions, replay, interruption, interpolation and migration safeguards.
+- 102 tests pass across 6 suites, including walking transitions, notification defer/reopen, explicit arrival sheets, concept-image selection, replay, interruption, interpolation and migration safeguards.
 - Production web export succeeds.
 - Browser QA: original home, printer settings/printing/reroll and keyboard-confirmed slide-to-go; Library/Profile/settings navigation; nearby notification dismissal and receipt handoff; acceptance and Live Activity; pause/pan/zoom/recenter; keyboard focus/Escape; automatic arrival, early-release cancellation, full hold and keyboard completion; completed folder/note and reload persistence.
 - No errors/warnings observed during the fresh focused browser run.

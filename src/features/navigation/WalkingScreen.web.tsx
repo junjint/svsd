@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ANN_ARBOR_DEMO_PLACES } from "@/data/annArborPlaces";
 import { Receipt } from "@/features/draw/printer/Receipt";
 import { HoldToComplete } from "@/features/quest/HoldToComplete";
+import { conceptPhoto } from "@/features/quest/conceptPhotoAssets";
 import { buildDrawnQuest, eligibleActivities } from "@/services/draw/engine";
 import { useSidequestStore, type DrawSession } from "@/stores/sidequestStore";
 import { GlassIconButton, PillButton, Text, color, fonts } from "@/theme";
@@ -73,10 +74,12 @@ export default function WalkingScreen() {
   const [{ quest: sample, draw }] = useState(example);
   const [activeId, setActiveId] = useState<string | null>(requestedId ?? null);
   const target = quests.find((q) => q.id === activeId) ?? sample;
+  const photo = conceptPhoto(target);
   const missing = !!requestedId && !quests.some((q) => q.id === requestedId);
   const [state, dispatch] = useReducer(walkReducer, !!requestedId, initialWalk);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const lock = useRef(false),
     holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     held = useRef(false);
@@ -136,10 +139,10 @@ export default function WalkingScreen() {
       : router.replace("/folders");
 
   useEffect(() => {
-    if (missing) return;
+    if (missing || detailsOpen) return;
     const timer = setInterval(() => dispatch({ type: "tick" }), 1000);
     return () => clearInterval(timer);
-  }, [missing]);
+  }, [missing, detailsOpen]);
   useEffect(
     () => () => {
       if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -161,7 +164,11 @@ export default function WalkingScreen() {
   }, [state.expanded]);
   useEffect(() => {
     const escape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dispatch({ type: "collapse" });
+      if (e.key === "Escape") {
+        dispatch({ type: "collapse" });
+        dispatch({ type: "collapseNotice" });
+        setDetailsOpen(false);
+      }
     };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
@@ -211,6 +218,15 @@ export default function WalkingScreen() {
   const stopHold = () => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
     holdTimer.current = null;
+  };
+  const viewQuest = () => {
+    dispatch({ type: "collapse" });
+    if (state.phase === "arrived") dispatch({ type: "openArrival" });
+    else setDetailsOpen(true);
+  };
+  const continueWalk = () => {
+    if (state.paused) dispatch({ type: "pause" });
+    dispatch({ type: "collapse" });
   };
   const stage =
     state.phase === "done"
@@ -352,6 +368,7 @@ export default function WalkingScreen() {
         <GlassIconButton
           label="Replay walking demo"
           onPress={() => {
+            setDetailsOpen(false);
             if (!direct) setActiveId(null);
             dispatch({ type: "replay", direct });
           }}
@@ -431,7 +448,7 @@ export default function WalkingScreen() {
         ) : state.phase === "arrived" ? (
           <PillButton
             label="Open your Sidequest"
-            onPress={() => dispatch({ type: "dismiss" })}
+            onPress={() => dispatch({ type: "openArrival" })}
           />
         ) : state.phase === "done" ? (
           <PillButton
@@ -448,8 +465,26 @@ export default function WalkingScreen() {
         onClose={() => dispatch({ type: "skip" })}
         title="A little detour?"
       >
-        <div className="rw-receipt">
-          <Receipt draw={draw} from={START} cityLabel="Ann Arbor" width={235} />
+        <div className="rw-discovery-pair" style={variables}>
+          <figure>
+            <img
+              src={photo}
+              alt="Generated concept of a colorful street-art passage"
+            />
+            <figcaption>
+              AI-generated concept
+              <br />
+              Not a photo of this place
+            </figcaption>
+          </figure>
+          <div className="rw-receipt">
+            <Receipt
+              draw={draw}
+              from={START}
+              cityLabel="Ann Arbor"
+              width={156}
+            />
+          </div>
         </div>
         <PillButton
           label={busy ? "Starting…" : "Take this detour"}
@@ -465,11 +500,18 @@ export default function WalkingScreen() {
         {error ? <Text accessibilityRole="alert">{error}</Text> : null}
       </Sheet>
       <Sheet
-        visible={state.phase === "arrived" && !state.banner}
-        onClose={() => dispatch({ type: "skip" })}
+        visible={state.phase === "arrived" && state.arrivalOpen}
+        onClose={() => dispatch({ type: "closeArrival" })}
         title="You’re here"
         subtitle={clean(target.placeName)}
       >
+        <figure className="rw-quest-photo" style={variables}>
+          <img
+            src={photo}
+            alt={`Generated concept preview for ${clean(target.placeName)}`}
+          />
+          <figcaption>AI-generated concept · not a place photo</figcaption>
+        </figure>
         <Text variant="prose">{target.activityText}</Text>
         {target.status === "completed" ? (
           <PillButton label="Open your folder" onPress={openFolder} />
@@ -477,6 +519,25 @@ export default function WalkingScreen() {
           <HoldToComplete onComplete={() => void finish()} />
         )}
         {error ? <Text accessibilityRole="alert">{error}</Text> : null}
+      </Sheet>
+      <Sheet
+        visible={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title={clean(target.placeName)}
+        subtitle="Your little detour"
+      >
+        <figure className="rw-quest-photo" style={variables}>
+          <img
+            src={photo}
+            alt={`Generated concept preview for ${clean(target.placeName)}`}
+          />
+          <figcaption>AI-generated concept · not a place photo</figcaption>
+        </figure>
+        <Text variant="prose">{target.activityText}</Text>
+        <PillButton
+          label="Back to walking"
+          onPress={() => setDetailsOpen(false)}
+        />
       </Sheet>
       <DeviceSystemOverlay>
         <div className="rw-system" style={variables}>
@@ -490,20 +551,32 @@ export default function WalkingScreen() {
           <div className={`rw-island ${state.expanded ? "expanded" : ""}`}>
             <button
               className="rw-island-compact"
-              aria-label="Expand Sidequest Live Activity"
-              disabled={!detouring}
+              aria-label={
+                detouring
+                  ? "Expand Sidequest Live Activity"
+                  : "Show Sidequest notification"
+              }
+              disabled={state.phase === "preview" || state.phase === "done"}
+              aria-expanded={detouring ? state.expanded : state.noticeOpen}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  dispatch({ type: detouring ? "expand" : "expandNotice" });
+                }
+              }}
               onPointerDown={() => {
                 held.current = false;
                 holdTimer.current = setTimeout(() => {
                   held.current = true;
-                  dispatch({ type: "expand" });
+                  dispatch({ type: detouring ? "expand" : "expandNotice" });
                 }, 550);
               }}
               onPointerUp={stopHold}
               onPointerCancel={stopHold}
               onPointerLeave={stopHold}
               onClick={() => {
-                if (!held.current) dispatch({ type: "expand" });
+                if (!held.current)
+                  dispatch({ type: detouring ? "expand" : "notify" });
               }}
             >
               <span>{detouring ? "✦" : "↗"}</span>
@@ -512,7 +585,9 @@ export default function WalkingScreen() {
                   ? "here"
                   : detouring
                     ? `${Math.max(1, Math.ceil((1 - state.progress) * 4))}m`
-                    : "walk"}
+                    : state.phase === "nearby"
+                      ? "nearby"
+                      : "walk"}
               </span>
             </button>
             {state.expanded && (
@@ -552,22 +627,62 @@ export default function WalkingScreen() {
                 <h2>{clean(target.placeName)}</h2>
                 <p>
                   {state.phase === "arrived"
-                    ? "You’re here."
-                    : "A little off your usual way."}
+                    ? "You’re here. Make a little memory."
+                    : state.paused
+                      ? "Paused. Take your time."
+                      : "A little off your usual way."}
                 </p>
-                <div className="rw-activity-track">
+                <div className="rw-activity-metrics">
+                  <span>
+                    <strong>
+                      {state.phase === "arrived"
+                        ? "Here"
+                        : `${Math.max(1, Math.ceil((1 - state.progress) * 4))} min`}
+                    </strong>{" "}
+                    {state.phase === "arrived"
+                      ? "destination reached"
+                      : "demo walk"}
+                  </span>
+                  <button
+                    aria-label={
+                      state.paused
+                        ? "Resume from Live Activity"
+                        : "Pause from Live Activity"
+                    }
+                    onClick={() => dispatch({ type: "pause" })}
+                  >
+                    {state.paused ? "▶" : "Ⅱ"}
+                  </button>
+                </div>
+                <div
+                  className="rw-activity-track"
+                  role="progressbar"
+                  aria-label="Detour progress"
+                  aria-valuenow={Math.round(state.progress * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
                   <i style={{ width: `${state.progress * 100}%` }} />
                 </div>
-                <button onClick={() => dispatch({ type: "collapse" })}>
-                  Continue walking ↗
-                </button>
+                <div className="rw-activity-actions">
+                  <button onClick={viewQuest}>
+                    {state.phase === "arrived"
+                      ? "Open Sidequest"
+                      : "View Sidequest"}
+                  </button>
+                  {state.phase !== "arrived" && (
+                    <button onClick={continueWalk}>
+                      {state.paused ? "Resume walking ↗" : "Continue walking ↗"}
+                    </button>
+                  )}
+                </div>
                 <small>Simulated Live Activity · tap or hold to expand</small>
               </div>
             )}
           </div>
           {state.banner && (
             <div
-              className="rw-banner"
+              className={`rw-banner ${state.noticeOpen ? "is-open" : ""}`}
               role="region"
               aria-label="Sidequest notification"
               onPointerDown={(e) => {
@@ -579,18 +694,23 @@ export default function WalkingScreen() {
                 if (swipeStart.current - e.clientY > 24) {
                   swiped.current = true;
                   dispatch({ type: "dismiss" });
+                } else if (e.clientY - swipeStart.current > 24) {
+                  swiped.current = true;
+                  dispatch({ type: "expandNotice" });
                 }
               }}
             >
               <button
+                className="rw-banner-main"
                 onClick={() => {
                   if (!swiped.current)
                     dispatch({
-                      type: state.phase === "arrived" ? "dismiss" : "open",
+                      type: state.phase === "arrived" ? "openArrival" : "open",
                     });
+                  swiped.current = false;
                 }}
               >
-                <b>✦</b>
+                <img className="rw-notice-thumb" src={photo} alt="" />
                 <span>
                   <small>
                     SIDEQUEST <em>now</em>
@@ -604,11 +724,60 @@ export default function WalkingScreen() {
                 </span>
               </button>
               <button
+                className="rw-notice-expand"
+                aria-label={
+                  state.noticeOpen
+                    ? "Collapse notification preview"
+                    : "Expand notification preview"
+                }
+                aria-expanded={state.noticeOpen}
+                onClick={() =>
+                  dispatch({
+                    type: state.noticeOpen ? "collapseNotice" : "expandNotice",
+                  })
+                }
+              >
+                {state.noticeOpen ? "⌃" : "⌄"}
+              </button>
+              <button
+                className="rw-notice-dismiss"
                 aria-label="Dismiss notification"
                 onClick={() => dispatch({ type: "dismiss" })}
               >
                 ×
               </button>
+              {state.noticeOpen && (
+                <div className="rw-notice-detail">
+                  <figure>
+                    <img
+                      src={photo}
+                      alt={`Generated concept preview for ${clean(target.placeName)}`}
+                    />
+                    <figcaption>
+                      AI-generated concept · not a place photo
+                    </figcaption>
+                  </figure>
+                  <p>{target.activityText}</p>
+                  <div>
+                    <button
+                      onClick={() =>
+                        dispatch({
+                          type:
+                            state.phase === "arrived" ? "openArrival" : "open",
+                        })
+                      }
+                    >
+                      {state.phase === "arrived"
+                        ? "Open Sidequest"
+                        : "Preview Sidequest"}{" "}
+                      ↗
+                    </button>
+                    <button onClick={() => dispatch({ type: "dismiss" })}>
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
