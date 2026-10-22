@@ -24,32 +24,41 @@ export function useScreen(): { width: number; height: number } {
 
 /* ── portal: modals render inside the phone, not over the whole browser ── */
 
-type PortalApi = { set: (id: string, node: ReactNode | null) => void };
+type PortalApi = { set: (id: string, node: ReactNode | null, system?: boolean) => void };
 const PortalContext = createContext<PortalApi | null>(null);
 
 function PortalHost({ children }: { children: ReactNode }) {
-  const [nodes, setNodes] = useState<Record<string, ReactNode>>({});
-  const set = useCallback((id: string, node: ReactNode | null) => {
+  const [nodes, setNodes] = useState<Record<string, { node: ReactNode; system: boolean }>>({});
+  const set = useCallback((id: string, node: ReactNode | null, system = false) => {
     setNodes((n) => {
       if (node === null) {
         if (!(id in n)) return n;
         const { [id]: _gone, ...rest } = n;
         return rest;
       }
-      return { ...n, [id]: node };
+      return { ...n, [id]: { node, system } };
     });
   }, []);
   const api = useMemo(() => ({ set }), [set]);
   return (
     <PortalContext.Provider value={api}>
       {children}
-      {Object.entries(nodes).map(([id, node]) => (
-        <View key={id} style={styles.layer}>
-          {node}
+      {Object.entries(nodes).map(([id, entry]) => (
+        <View key={id} pointerEvents="box-none" style={[styles.layer, entry.system && { zIndex: 3000 }]}>
+          {entry.node}
         </View>
       ))}
     </PortalContext.Provider>
   );
+}
+
+/** Integration seam: simulated system UI sits above the existing phone status bar. */
+export function DeviceSystemOverlay({ children }: { children: ReactNode }) {
+  const portal = useContext(PortalContext);
+  const id = useId();
+  useEffect(() => { if (portal) portal.set(id, children, true); });
+  useEffect(() => () => portal?.set(id, null), [portal, id]);
+  return portal ? null : <View pointerEvents="box-none" style={[styles.layer, { zIndex: 3000 }]}>{children}</View>;
 }
 
 /** A drop-in for React Native's Modal that stays inside the phone frame on desktop web */
@@ -87,7 +96,7 @@ export function DeviceFrame({ children }: { children: ReactNode }) {
   const zoom = Math.min(1, (win.height - 32) / (DEVICE.height + BEZEL * 2));
   return (
     <View style={styles.page}>
-      <View style={[styles.device, { zoom } as object]}>
+      <View testID="sidequest-device" style={[styles.device, { zoom } as object]}>
         <ScreenContext.Provider value={{ width: DEVICE.width, height: DEVICE.height }}>
           <SafeAreaFrameContext.Provider value={{ x: 0, y: 0, width: DEVICE.width, height: DEVICE.height }}>
             <SafeAreaInsetsContext.Provider value={{ top: DEVICE.statusBar, bottom: DEVICE.homeIndicator, left: 0, right: 0 }}>

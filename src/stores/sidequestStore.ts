@@ -11,6 +11,7 @@ import { getCurrentPosition, requestForegroundLocation } from '@/services/locati
 import { storage } from '@/services/persistence/storage';
 import { placeService } from '@/services/places/PlaceService';
 import { normaliseActivity, normalisePlace, placeCoordinates, suggestedToday, userActivitiesFor, userPlaces } from '@/services/suggest/pool';
+import { importPreview } from '@/services/persistence/importPreview';
 import { forceStatus } from '@/services/sidequest/lifecycle';
 import { setFeedbackEnabled } from '@/services/sound';
 import { createId } from '@/utils/id';
@@ -103,6 +104,7 @@ interface SidequestState {
 
   activeQuests: () => DrawnSidequest[];
   completeQuest: (id: string) => Promise<QuestFolder | null>;
+  acceptNavigationQuest: (quest: DrawnSidequest) => Promise<DrawnSidequest>;
   abandonQuest: (id: string) => Promise<void>;
   startSavedQuest: (id: string) => Promise<void>;
 
@@ -191,7 +193,7 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     draw: null,
 
     hydrate: async () => {
-      const [prefs, stored, storedFolders, badges, drawCount, seeded, storedSuggestions] = await Promise.all([
+      const [prefs, stored, storedFolders, badges, drawCount, seeded, storedSuggestions, previewImported] = await Promise.all([
         storage.getJson<V2Preferences>('v2Preferences'),
         storage.getJson<DrawnSidequest[]>('v2Quests'),
         storage.getJson<QuestFolder[]>('v2Folders'),
@@ -199,11 +201,21 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         storage.getJson<number>('v2DrawCount'),
         storage.getJson<boolean>('v2Seeded'),
         storage.getJson<Suggestion[]>('v2Suggestions'),
+        storage.getJson<boolean>('previewImported'),
       ]);
       const suggestions = storedSuggestions ?? [];
       placeService.setUserPlaces(userPlaces(suggestions));
       let quests = stored ?? [];
       let folders = storedFolders ?? [];
+      let importedPreview = false;
+      if (Platform.OS === 'web' && !previewImported) {
+        try {
+          const imported = importPreview(window.localStorage.getItem('sidequest:app:v3'));
+          quests = [...quests, ...imported.quests.filter(q => !quests.some(existing => existing.id === q.id))];
+          folders = [...folders, ...imported.folders.filter(f => !folders.some(existing => existing.id === f.id))];
+          importedPreview = true;
+        } catch { /* Storage may be unavailable in a private browser. */ }
+      }
       let earned = badges ?? [];
       const seedNow = DEMO && !seeded;
       // Demo installs start with a library of past sidequests, once
@@ -229,7 +241,8 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         suggestions,
         drawCount: drawCount ?? 0,
       });
-      if (seedNow) await persist();
+      if (seedNow || importedPreview) await persist();
+      if (importedPreview) await storage.setJson('previewImported', true);
       if (merged.onboarded) void get().refreshLocation();
     },
 
@@ -406,6 +419,15 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     startSavedQuest: async (id) => {
       set({ quests: get().quests.map((q) => (q.id === id ? (forceStatus(q, 'accepted') as DrawnSidequest) : q)) });
       await persist();
+    },
+
+    acceptNavigationQuest: async (quest) => {
+      const existing = get().quests.find(q => q.id === quest.id);
+      if (existing) return existing;
+      const accepted = forceStatus(quest, 'accepted') as DrawnSidequest;
+      set({ quests: [accepted, ...get().quests] });
+      await persist();
+      return accepted;
     },
 
     completeQuest: async (id) => {

@@ -7,7 +7,7 @@ import { Chevron } from '@/features/folders/icons';
 import { forgetPhoto } from '@/features/folders/pickPhotos';
 import { RadiusPicker } from '@/features/location';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { Logo, Paper, Text, TornPaper, color, radius as R, space } from '@/theme';
+import { Logo, Paper, Text, TornPaper, color, space } from '@/theme';
 import { LiquidToggle, showToast } from '@/ui';
 
 export default function SettingsScreen() {
@@ -16,7 +16,10 @@ export default function SettingsScreen() {
   const clearAll = useSidequestStore((s) => s.clearAll);
   const [confirmClear, setConfirmClear] = useState(false);
   const [radius, setRadius] = useState(prefs.radiusMiles);
-  useEffect(() => setRadius(prefs.radiusMiles), [prefs.radiusMiles]);
+  useEffect(() => {
+    const timer = setTimeout(() => setRadius(prefs.radiusMiles), 0);
+    return () => clearTimeout(timer);
+  }, [prefs.radiusMiles]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 

@@ -35,6 +35,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
               <Stack.Screen name="about" options={{ presentation: 'modal' }} />
               <Stack.Screen name="map" />
+              <Stack.Screen name="walk" />
             </Stack>
           )}
           {hydrated && <ToastHost />}
