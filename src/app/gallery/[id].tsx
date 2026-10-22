@@ -190,10 +190,6 @@ export default function GalleryScreen() {
         visible={sheet === 'options'}
         hasPhoto={!!current}
         onClose={() => setSheet(null)}
-        onGallery={(v) => {
-          void updateFolder(folder.id, { savedToGallery: v });
-          showToast(v ? 'Saved to Gallery' : 'Removed from Gallery');
-        }}
         onOpenQuest={
           folder.sidequestId
             ? () => {

@@ -1,16 +1,15 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, color, radius, space } from '@/theme';
 import type { QuestFolder } from '@/types';
-import { LiquidToggle, Sheet } from '@/ui';
+import { Sheet } from '@/ui';
 import { Chevron } from '../icons';
 
-/** The ⋯ sheet: Gallery, the linked quest, and the two deletes */
+/** The ⋯ sheet: the linked quest and the two deletes. Folders are yours alone, so there's no sharing here */
 export function OptionsSheet({
   folder,
   visible,
   hasPhoto,
   onClose,
-  onGallery,
   onOpenQuest,
   onDeletePhoto,
   onDeleteFolder,
@@ -20,7 +19,6 @@ export function OptionsSheet({
   visible: boolean;
   hasPhoto: boolean;
   onClose: () => void;
-  onGallery: (v: boolean) => void;
   onOpenQuest?: () => void;
   onDeletePhoto: () => void;
   onDeleteFolder: () => void;
@@ -28,21 +26,11 @@ export function OptionsSheet({
 }) {
   return (
     <Sheet visible={visible} onClose={onClose} title={folder.title}>
-      <View style={styles.group}>
-        <View style={styles.row}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="headline">Save to Gallery</Text>
-            <Text variant="caption" style={{ color: color.ink2 }}>Shows on your profile</Text>
-          </View>
-          <LiquidToggle value={folder.savedToGallery} onChange={onGallery} label="Save to Gallery" />
+      {onOpenQuest && (
+        <View style={styles.group}>
+          <Row label="Open the quest" onPress={onOpenQuest} chevron />
         </View>
-        {onOpenQuest && (
-          <>
-            <View style={styles.hair} />
-            <Row label="Open the quest" onPress={onOpenQuest} chevron />
-          </>
-        )}
-      </View>
+      )}
       <View style={styles.group}>
         {hasPhoto && (
           <>

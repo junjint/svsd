@@ -197,12 +197,12 @@ export default function SidequestPage() {
               {photos.length > 0 && (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="View gallery"
+                  accessibilityLabel="View photos"
                   hitSlop={8}
                   onPress={() => router.push({ pathname: '/gallery/[id]', params: { id: folder.id } })}
                   style={({ pressed }) => [styles.ghost, pressed && { opacity: 0.6 }]}
                 >
-                  <Text style={styles.ghostText}>View gallery</Text>
+                  <Text style={styles.ghostText}>View photos</Text>
                   <Chevron size={10} tint={color.ink} dir="right" />
                 </Pressable>
               )}
@@ -269,10 +269,6 @@ export default function SidequestPage() {
         visible={sheet === 'options'}
         hasPhoto={false}
         onClose={() => setSheet(null)}
-        onGallery={(v) => {
-          void updateFolder(folder.id, { savedToGallery: v });
-          showToast(v ? 'Saved to Gallery' : 'Removed from Gallery');
-        }}
         onOpenQuest={undefined}
         deleteLabel={quest ? 'Delete sidequest' : 'Delete folder'}
         onDeletePhoto={() => setSheet(null)}

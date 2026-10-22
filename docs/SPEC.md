@@ -106,6 +106,8 @@ This build drops the current Moon / DM Sans system in `src/design/` entirely. It
 > - **Badges:** Word of Mouth, Local Knowledge, Cartographer, Folklore at 1 / 5 / 10 / 25 suggestions (a day, a week, two weeks, a month of showing up). They're struck SVG medals with a Garamond numeral (`BadgeArt`). Local Legend now means finishing a sidequest at a place you suggested. Celebrations show on Draw, Profile and Library, only on the screen in front.
 > - **Map (`/map`):** Get directions opens a simulated 3D paper-model of the city (three.js on web, an isometric SVG elsewhere): it finds you, then draws a walking route to the place, with Open in Maps for the real thing. Browsing (the city line sheet, **Look around**) shows a random 14 identical pins, reshuffled every visit; tap one to read a line about it. No search, no list, no ratings, no counts.
 > - **Why Sidequest:** onboarding opens with "Nothing here is / fed to you." under the ornate arch, and the same story lives at Settings > Why Sidequest (`/about`).
+> - **Just for you (2026-10-22, after the merge with Jun's walk):** Profile has no Gallery and no public/private toggle, and folders lose "Save to Gallery": Sidequest isn't a social format. Profile keeps the banner, calendar, trophies and the Suggest card.
+> - **Get directions opens Jun's walk (`/walk?quest=`)**, restyled to the app: paper map with ink route and pins (no blue), glass buttons with drawn icons, a torn-paper route card in Garamond, and a Live Activity in ink and white. The paper-model `/map` stays for Look around. The header's walking-demo shortcut is gone; top left is Suggest only.
 
 ### 3.1 Home = the Draw screen
 

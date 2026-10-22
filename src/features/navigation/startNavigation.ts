@@ -9,10 +9,10 @@ export interface NavigationTarget {
 
 /**
  * The entryway to in-app navigation. Every "Get directions" button calls
- * this one function; it opens the paper-model map (src/app/map.tsx) in
- * navigate mode, which finds you, draws the walk and offers a real maps
- * app from its card.
+ * this one function; it opens the walk (src/app/walk.tsx): the route on a
+ * paper map, the Live Activity, and the hold to finish when you arrive.
+ * The paper-model map (/map) stays for looking around.
  */
 export function startNavigation(target: NavigationTarget) {
-  router.push({ pathname: '/map', params: { sidequestId: target.sidequestId } });
+  router.push({ pathname: '/walk', params: { quest: target.sidequestId } });
 }

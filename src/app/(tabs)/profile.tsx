@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { GalleryRow } from '@/features/profile/GalleryRow';
 import { ProfileHeader } from '@/features/profile/ProfileHeader';
 import { SidequestCalendar } from '@/features/profile/SidequestCalendar';
 import { useMostColorful } from '@/features/profile/colorfulness';
@@ -13,7 +12,7 @@ import { TrophyCase } from '@/features/profile/TrophyCase';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Paper, Text, TornPaper, color, space } from '@/theme';
 import type { QuestFolder } from '@/types';
-import { LiquidToggle, showToast, useTabBarSpace } from '@/ui';
+import { showToast, useTabBarSpace } from '@/ui';
 
 /** The demo's stand-in until someone picks their own (Unsplash, free licence) */
 const DEMO_AVATAR = 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop&crop=faces&q=80&auto=format';
@@ -37,7 +36,6 @@ export default function ProfileScreen() {
       { value: folders.reduce((n, f) => n + f.photos.length, 0), label: 'Photos' },
     ];
   }, [quests, folders]);
-  const gallery = useMemo(() => folders.filter((f) => f.savedToGallery), [folders]);
   // the banner is the most colourful sidequest photo, blurred down to its colours
   const photoUris = useMemo(() => folders.flatMap((f) => f.photos.map((p) => p.uri)).slice(0, 80), [folders]);
   const banner = useMostColorful(photoUris);
@@ -46,7 +44,6 @@ export default function ProfileScreen() {
     if (uri === 'denied') showToast('Allow photo access in Settings to add one');
     else if (uri) void updatePrefs({ avatarUri: uri });
   };
-  const isPublic = prefs.profileVisibility === 'public';
   const openFolder = (f: QuestFolder) => router.push({ pathname: '/folder/[id]', params: { id: f.id } });
 
   return (
@@ -66,25 +63,6 @@ export default function ProfileScreen() {
         <SidequestCalendar folders={folders} onOpen={openFolder} />
 
         <TrophyCase earned={badges} />
-
-        <GalleryRow folders={gallery} visibility={prefs.profileVisibility} onOpen={openFolder} />
-
-        <TornPaper seed="profile-privacy" style={styles.cardWrap} contentStyle={styles.card}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="headline">Private profile</Text>
-            <Text variant="caption" style={{ color: color.ink2 }}>
-              {isPublic ? 'Your profile and Gallery can be seen by other Sidequesters' : 'Only you can see your profile and Gallery'}
-            </Text>
-          </View>
-          <LiquidToggle
-            value={!isPublic}
-            label="Private profile"
-            onChange={(priv) => {
-              void updatePrefs({ profileVisibility: priv ? 'private' : 'public' });
-              showToast(priv ? 'Profile is private' : 'Profile is public');
-            }}
-          />
-        </TornPaper>
 
         <Pressable
           accessibilityRole="button"

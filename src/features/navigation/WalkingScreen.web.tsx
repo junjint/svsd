@@ -13,11 +13,22 @@ import { HoldToComplete } from "@/features/quest/HoldToComplete";
 import { conceptPhoto } from "@/features/quest/conceptPhotoAssets";
 import { buildDrawnQuest, eligibleActivities } from "@/services/draw/engine";
 import { useSidequestStore, type DrawSession } from "@/stores/sidequestStore";
-import { GlassIconButton, PillButton, Text, color, fonts } from "@/theme";
+import { StyleSheet, View } from "react-native";
+import { Chevron } from "@/features/folders/icons";
+import { Glass, GlassIconButton, PillButton, Text, TornPaper, color, fonts, space } from "@/theme";
 import { DeviceSystemOverlay, useScreen } from "@/ui/DeviceFrame";
 import { Sheet } from "@/ui";
 import type { Coordinates } from "@/types";
 import { initialWalk, interpolate, routeFor, walkReducer } from "./walkFlow";
+import {
+  AheadIcon,
+  MinusIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  RecentreIcon,
+  ReplayIcon,
+} from "./WalkIcons";
 import "./walking.css";
 
 const START: Coordinates = { latitude: 42.2808, longitude: -83.743 };
@@ -245,13 +256,15 @@ export default function WalkingScreen() {
     "--rw-line": color.line,
     "--rw-font": fonts.sans,
     "--rw-semi": fonts.sansSemi,
+    "--rw-serif": fonts.serif,
+    "--rw-serif-italic": fonts.serifItalic,
   } as CSSProperties;
   if (missing)
     return (
       <div className="rw-walk" style={variables}>
         <div className="rw-missing">
           <Text variant="title">This sidequest isn’t here.</Text>
-          <PillButton label="Back to Sidequest" onPress={back} />
+          <PillButton tone="ink" label="Back to Sidequest" onPress={back} />
         </div>
       </div>
     );
@@ -286,7 +299,7 @@ export default function WalkingScreen() {
           drag.current = null;
         }}
       >
-        <rect width={width} height={height} fill="#F0EEE8" />
+        <rect width={width} height={height} fill={MAP.street} />
         <g
           transform={`translate(${camera.x} ${camera.y}) translate(${width / 2} ${height / 2}) scale(${camera.zoom}) translate(${-width / 2} ${-height / 2})`}
         >
@@ -299,7 +312,7 @@ export default function WalkingScreen() {
                 width="74"
                 height="82"
                 rx="5"
-                fill={c === 4 ? "#DDE6D0" : "#E7E4DD"}
+                fill={c === 4 ? MAP.park : MAP.block}
               />
             )),
           )}
@@ -312,154 +325,166 @@ export default function WalkingScreen() {
           <path
             d={path(routeFor(start, destination))}
             fill="none"
-            stroke="#9BA6AD"
-            strokeWidth="3"
-            strokeDasharray="3 7"
+            stroke={color.ink3}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="1 7"
             opacity={detouring ? 0.4 : 0}
           />
           <path
             d={path(route)}
             fill="none"
-            stroke="white"
-            strokeWidth="10"
+            stroke={color.paper}
+            strokeWidth="11"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
             d={path(route)}
             fill="none"
-            stroke="#2682EC"
-            strokeWidth="5"
+            stroke={color.ink}
+            strokeWidth="4.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           {["nearby", "preview"].includes(state.phase) && (
             <g transform={`translate(${nearby.x} ${nearby.y})`}>
-              <circle r="17" fill={color.paper} stroke="#B3B59E" />
-              <text textAnchor="middle" y="6" fill="#6A745C" fontSize="22">
-                ✦
-              </text>
+              <circle r="15" fill={color.paper} stroke={color.ink} strokeWidth="1.2" />
+              <circle r="4.5" fill={color.ink} />
             </g>
           )}
           <circle
             cx={pin.x}
             cy={pin.y}
-            r="8"
-            fill={detouring ? "#6E805B" : "#E16E61"}
-            stroke="white"
+            r="7"
+            fill={color.ink}
+            stroke={color.paper}
             strokeWidth="3"
           />
           <g
             className="rw-location"
             style={{ transform: `translate(${position.x}px,${position.y}px)` }}
           >
-            <circle r="17" fill="#2682EC20" />
-            <circle r="8" fill="#2682EC" stroke="white" strokeWidth="3" />
+            <circle r="18" fill={color.ink} opacity="0.07" />
+            <circle r="7.5" fill={color.white} stroke={color.ink} strokeWidth="3" />
           </g>
         </g>
       </svg>
       <header className="rw-top">
         <GlassIconButton label="Back to Sidequest" onPress={back}>
-          <Text>‹</Text>
+          <Chevron size={14} />
         </GlassIconButton>
-        <span>
-          Maps <small>WALKING DEMO</small>
+        <span className="rw-heading">
+          <small>{(target.cityLabel ?? "Ann Arbor").toUpperCase()}</small>
+          On foot
         </span>
         <GlassIconButton
-          label="Replay walking demo"
+          label="Replay walk"
           onPress={() => {
             setDetailsOpen(false);
             if (!direct) setActiveId(null);
             dispatch({ type: "replay", direct });
           }}
         >
-          <Text>↻</Text>
+          <ReplayIcon />
         </GlassIconButton>
       </header>
-      <div className="rw-direction">
-        <b>↑</b>
-        <span>
-          {state.phase === "done" && direct
-            ? "Destination reached"
-            : "Continue walking"}
-          <small>
-            {detouring
-              ? "A little detour"
-              : direct
-                ? clean(target.placeName)
-                : "Toward Michigan Union"}
-          </small>
-        </span>
-      </div>
-      <div className="rw-tools">
-        <button
-          aria-label="Recenter map"
-          onClick={() => setCamera({ x: 0, y: 0, zoom: 1 })}
+      <View style={walkStyles.direction} pointerEvents="none">
+        <Glass radius={24} style={walkStyles.directionGlass}>
+          <View style={walkStyles.ahead}>
+            <AheadIcon />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="headline">
+              {state.phase === "arrived" || (state.phase === "done" && direct) ? "You’re there" : "Keep going"}
+            </Text>
+            <Text variant="caption" style={{ color: color.ink2 }} numberOfLines={1}>
+              {state.phase === "detouring"
+                ? `Toward ${clean(target.placeName)}`
+                : detouring || direct
+                  ? clean(target.placeName)
+                  : "Toward Michigan Union"}
+            </Text>
+          </View>
+        </Glass>
+      </View>
+      <View style={walkStyles.tools}>
+        <GlassIconButton label="Recentre map" onPress={() => setCamera({ x: 0, y: 0, zoom: 1 })}>
+          <RecentreIcon />
+        </GlassIconButton>
+        <GlassIconButton
+          label="Zoom in"
+          onPress={() => setCamera((c) => ({ ...c, zoom: Math.min(2, c.zoom + 0.2) }))}
         >
-          ⌖
-        </button>
-        <button
-          aria-label="Zoom in"
-          onClick={() =>
-            setCamera((c) => ({ ...c, zoom: Math.min(2, c.zoom + 0.2) }))
-          }
+          <PlusIcon />
+        </GlassIconButton>
+        <GlassIconButton
+          label="Zoom out"
+          onPress={() => setCamera((c) => ({ ...c, zoom: Math.max(0.7, c.zoom - 0.2) }))}
         >
-          +
-        </button>
-        <button
-          aria-label="Zoom out"
-          onClick={() =>
-            setCamera((c) => ({ ...c, zoom: Math.max(0.7, c.zoom - 0.2) }))
-          }
-        >
-          −
-        </button>
-      </div>
-      <div className="rw-route-card">
-        <div className="rw-grab" />
-        <div className="rw-route-title">
-          <span>{stage}</span>
-          <button
-            aria-label={state.paused ? "Resume walking" : "Pause walking"}
-            onClick={() => dispatch({ type: "pause" })}
-          >
-            {state.paused ? "▷" : "Ⅱ"}
-          </button>
-        </div>
-        <p>
-          {state.phase === "done"
-            ? direct
-              ? target.status === "completed"
-                ? "Your visit is saved in your folder."
-                : "Open your folder to finish when you’re ready."
-              : "Back to your original route."
-            : `${detouring ? Math.max(1, Math.ceil((1 - state.progress) * 4)) : 8} min walk · demo estimate`}
-        </p>
-        {state.phase === "nearby" ? (
-          <PillButton
-            label="Open nearby Sidequest"
-            onPress={() => dispatch({ type: "open" })}
-          />
-        ) : state.phase === "detouring" ? (
-          <PillButton
-            label="Preview arrival"
-            onPress={() => dispatch({ type: "arrive" })}
-          />
-        ) : state.phase === "arrived" ? (
-          <PillButton
-            label="Open your Sidequest"
-            onPress={() => dispatch({ type: "openArrival" })}
-          />
-        ) : state.phase === "done" ? (
-          <PillButton
-            label={folder ? "Open your folder" : "Back to Sidequest"}
-            onPress={folder ? openFolder : back}
-          />
-        ) : (
-          <small>A Sidequest might find you along the way.</small>
-        )}
-        <footer>Simulated iOS · approximate demo route</footer>
-      </div>
+          <MinusIcon />
+        </GlassIconButton>
+      </View>
+      <View style={walkStyles.cardWrap}>
+        <TornPaper seed={`walk-${target.id}`} contentStyle={walkStyles.card}>
+          <View style={walkStyles.titleRow}>
+            <Text style={walkStyles.place} numberOfLines={2}>
+              {stage}
+            </Text>
+            {state.phase !== "done" && (
+              <GlassIconButton
+                size={36}
+                label={state.paused ? "Resume walking" : "Pause walking"}
+                onPress={() => dispatch({ type: "pause" })}
+              >
+                {state.paused ? <PlayIcon /> : <PauseIcon />}
+              </GlassIconButton>
+            )}
+          </View>
+          <Text variant="callout" style={{ color: color.ink2 }}>
+            {state.phase === "done"
+              ? direct
+                ? target.status === "completed"
+                  ? "It’s in your Library."
+                  : "Finish it from its folder when you’re ready."
+                : "Back on your way."
+              : state.phase === "arrived"
+                ? "Take your time."
+                : `${detouring ? Math.max(1, Math.ceil((1 - state.progress) * 4)) : 8} min walk${state.paused ? " · paused" : ""}`}
+          </Text>
+          <View style={{ marginTop: space.lg }}>
+            {state.phase === "nearby" ? (
+              <PillButton
+                tone="ink"
+                label="See what’s nearby"
+                onPress={() => dispatch({ type: "open" })}
+              />
+            ) : state.phase === "detouring" ? (
+              <PillButton
+                tone="ink"
+                label="Skip to arrival"
+                onPress={() => dispatch({ type: "arrive" })}
+              />
+            ) : state.phase === "arrived" ? (
+              <PillButton
+                tone="ink"
+                label="I’m here"
+                onPress={() => dispatch({ type: "openArrival" })}
+              />
+            ) : state.phase === "done" ? (
+              <PillButton
+                tone="ink"
+                label={folder ? "Open its folder" : "Back to Sidequest"}
+                onPress={folder ? openFolder : back}
+              />
+            ) : (
+              <Text variant="caption" style={{ color: color.ink2 }}>
+                Something might turn up on the way.
+              </Text>
+            )}
+          </View>
+        </TornPaper>
+      </View>
       <Sheet
         visible={state.phase === "preview"}
         onClose={() => dispatch({ type: "skip" })}
@@ -487,16 +512,17 @@ export default function WalkingScreen() {
           </div>
         </div>
         <PillButton
+          tone="ink"
           label={busy ? "Starting…" : "Take this detour"}
           disabled={busy}
           onPress={() => void accept()}
         />
-        <button
-          className="rw-text-button"
-          onClick={() => dispatch({ type: "skip" })}
-        >
-          Keep walking
-        </button>
+        <PillButton
+          tone="frost"
+          sound={null}
+          label="Keep walking"
+          onPress={() => dispatch({ type: "skip" })}
+        />
         {error ? <Text accessibilityRole="alert">{error}</Text> : null}
       </Sheet>
       <Sheet
@@ -514,7 +540,7 @@ export default function WalkingScreen() {
         </figure>
         <Text variant="prose">{target.activityText}</Text>
         {target.status === "completed" ? (
-          <PillButton label="Open your folder" onPress={openFolder} />
+          <PillButton tone="ink" label="Open its folder" onPress={openFolder} />
         ) : (
           <HoldToComplete onComplete={() => void finish()} />
         )}
@@ -535,6 +561,7 @@ export default function WalkingScreen() {
         </figure>
         <Text variant="prose">{target.activityText}</Text>
         <PillButton
+          tone="ink"
           label="Back to walking"
           onPress={() => setDetailsOpen(false)}
         />
@@ -579,7 +606,7 @@ export default function WalkingScreen() {
                   dispatch({ type: detouring ? "expand" : "notify" });
               }}
             >
-              <span>{detouring ? "✦" : "↗"}</span>
+              <span className="rw-island-dot" aria-hidden />
               <span>
                 {state.phase === "arrived"
                   ? "here"
@@ -641,7 +668,7 @@ export default function WalkingScreen() {
                     </strong>{" "}
                     {state.phase === "arrived"
                       ? "destination reached"
-                      : "demo walk"}
+                      : "to go"}
                   </span>
                   <button
                     aria-label={
@@ -651,7 +678,7 @@ export default function WalkingScreen() {
                     }
                     onClick={() => dispatch({ type: "pause" })}
                   >
-                    {state.paused ? "▶" : "Ⅱ"}
+                    {state.paused ? <PlayIcon tint={color.white} /> : <PauseIcon tint={color.white} />}
                   </button>
                 </div>
                 <div
@@ -667,17 +694,16 @@ export default function WalkingScreen() {
                 <div className="rw-activity-actions">
                   <button onClick={viewQuest}>
                     {state.phase === "arrived"
-                      ? "Open Sidequest"
-                      : "View Sidequest"}
+                      ? "Open sidequest"
+                      : "View sidequest"}
                   </button>
                   {state.phase !== "arrived" && (
                     <button onClick={continueWalk}>
-                      {state.paused ? "Resume walking ↗" : "Continue walking ↗"}
+                      {state.paused ? "Resume walking" : "Keep walking"}
                     </button>
                   )}
                 </div>
-                <small>Simulated Live Activity · tap or hold to expand</small>
-              </div>
+                              </div>
             )}
           </div>
           {state.banner && (
@@ -768,9 +794,8 @@ export default function WalkingScreen() {
                       }
                     >
                       {state.phase === "arrived"
-                        ? "Open Sidequest"
-                        : "Preview Sidequest"}{" "}
-                      ↗
+                        ? "Open sidequest"
+                        : "Have a look"}
                     </button>
                     <button onClick={() => dispatch({ type: "dismiss" })}>
                       Not now
@@ -785,3 +810,17 @@ export default function WalkingScreen() {
     </div>
   );
 }
+
+/* the map's paper palette: streets are the paper, blocks a shade under it */
+const MAP = { street: "#F6F4F0", block: "#E9E6E0", park: "#DEE2D7" };
+
+const walkStyles = StyleSheet.create({
+  direction: { position: "absolute", top: 120, left: 20, right: 20 },
+  directionGlass: { flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 14, paddingHorizontal: 18 },
+  ahead: { width: 30, height: 30 },
+  tools: { position: "absolute", top: 212, right: 20, gap: 8 },
+  cardWrap: { position: "absolute", left: 16, right: 16, bottom: 40 },
+  card: { padding: space.xl, paddingTop: space.lg },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 },
+  place: { flex: 1, fontFamily: fonts.serif, fontSize: 26, lineHeight: 30, letterSpacing: -0.4, color: color.ink },
+});
