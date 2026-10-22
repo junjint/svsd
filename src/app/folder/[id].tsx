@@ -14,6 +14,7 @@ import { FullBleed } from '@/features/folders/viewer/FullBleed';
 import { NoteSheet, moodLabel } from '@/features/folders/viewer/NoteSheet';
 import { OptionsSheet } from '@/features/folders/viewer/OptionsSheet';
 import { HoldToComplete } from '@/features/quest/HoldToComplete';
+import { conceptPhoto } from '@/features/quest/conceptPhotoAssets';
 import { DirectionsButton } from '@/features/navigation/DirectionsButton';
 import { formatMiles, travelLabel } from '@/services/draw/rules';
 import { feedback } from '@/services/sound';
@@ -137,7 +138,7 @@ export default function SidequestPage() {
         {/* the picture of the sidequest */}
         <Pressable
           accessibilityRole="imagebutton"
-          accessibilityLabel={cover ? 'Open the cover photo' : 'No photos yet'}
+          accessibilityLabel={cover ? 'Open the cover photo' : quest ? 'AI-generated concept preview, not a photo of this place' : 'No photos yet'}
           disabled={!cover}
           onPress={() => setViewAt(0)}
           style={{ height: heroH + TAB }}
@@ -146,6 +147,13 @@ export default function SidequestPage() {
             <Animated.View entering={still ? undefined : FadeIn.duration(320)} style={StyleSheet.absoluteFill}>
               <Photo uri={cover.uri} radius={0} style={StyleSheet.absoluteFill} />
             </Animated.View>
+          ) : quest ? (
+            <View style={StyleSheet.absoluteFill}>
+              <Photo uri={conceptPhoto(quest)} radius={0} style={StyleSheet.absoluteFill} />
+              <View style={{ position: 'absolute', top: insets.top + 58, right: 20, backgroundColor: '#fbfaf7ed', borderRadius: 12, paddingVertical: 7, paddingHorizontal: 10 }}>
+                <Text style={{ fontSize: 9, color: color.ink2 }}>AI CONCEPT · NOT A PLACE PHOTO</Text>
+              </View>
+            </View>
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.noCover]}>
               <Decor name="swallow" width={150} />

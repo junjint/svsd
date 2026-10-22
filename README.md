@@ -17,6 +17,8 @@ In the generic demo, a nearby notification appears after four active walking tic
 
 Maps, location movement, estimates, notification banners and Live Activities are browser simulations. The map is a local schematic SVG, not geographic navigation or Apple MapKit tiles. No native ActivityKit, background notifications, GPS permission or Apple Maps extension is implemented. The walking integration currently targets web; native routes show an explanatory fallback.
 
+Generated concept photos are back in discovery, arrival and photo-less quest folders, clearly labeled and kept separate from personal photos. Notifications expand into photo/action previews (chevron, pull down or Arrow Down), can be deferred and reopened, and support swipe-up dismissal. The Live Activity includes pause/resume, progress and a photo-led “View Sidequest” handoff. Dismissing arrival does not complete the quest or force its sheet open.
+
 Existing native-store data is preserved. Earlier browser-preview memories and bookmarks are imported once into the shared Library with stable IDs; notes, actual visit dates and supported local photo data are retained. Old fallback imagery is not turned into a personal photo. Data remains local. Rebecca’s seeded sample Library remains available.
 
 ## Checks

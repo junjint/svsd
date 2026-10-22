@@ -7,6 +7,7 @@ import {
   type WalkState,
 } from "../src/features/navigation/walkFlow";
 import { importPreview } from "../src/services/persistence/importPreview";
+import { conceptPhotoKey } from "../src/features/quest/conceptPhoto";
 
 const run = (state: WalkState, ...actions: WalkAction[]) =>
   actions.reduce(walkReducer, state);
@@ -16,6 +17,72 @@ const ticks = (state: WalkState, count: number) =>
     state,
   );
 describe("Rebecca app walking integration", () => {
+  it("reopens and expands notifications without accepting or completing a quest", () => {
+    const notice = run(initialWalk(), { type: "expandNotice" });
+    expect(notice).toMatchObject({
+      phase: "nearby",
+      banner: true,
+      noticeOpen: true,
+    });
+    expect(run(notice, { type: "dismiss" })).toMatchObject({
+      phase: "nearby",
+      banner: false,
+      noticeOpen: false,
+    });
+    expect(run(notice, { type: "open" })).toMatchObject({
+      phase: "preview",
+      banner: false,
+      noticeOpen: false,
+    });
+    expect(run(initialWalk(true), { type: "expandNotice" })).toEqual(
+      initialWalk(true),
+    );
+    const arrival = run(
+      initialWalk(true),
+      { type: "arrive" },
+      { type: "expandNotice" },
+    );
+    expect(arrival).toMatchObject({
+      phase: "arrived",
+      banner: true,
+      noticeOpen: true,
+    });
+    expect(run(arrival, { type: "replay" })).toEqual(initialWalk());
+    expect(run(arrival, { type: "dismiss" })).toMatchObject({
+      phase: "arrived",
+      arrivalOpen: false,
+      banner: false,
+    });
+    const opened = run(arrival, { type: "openArrival" });
+    expect(opened).toMatchObject({
+      phase: "arrived",
+      arrivalOpen: true,
+      banner: false,
+      noticeOpen: false,
+    });
+    expect(run(opened, { type: "closeArrival" })).toMatchObject({
+      phase: "arrived",
+      arrivalOpen: false,
+    });
+    expect(run(opened, { type: "finish" })).toMatchObject({
+      phase: "done",
+      arrivalOpen: false,
+    });
+    expect(run(initialWalk(), { type: "openArrival" })).toEqual(initialWalk());
+  });
+  it("selects relevant concept imagery without mutating quest or personal photo data", () => {
+    const quest = Object.freeze({
+      placeName: "Graffiti Alley",
+      category: "art",
+    });
+    expect(conceptPhotoKey(quest)).toBe("passage");
+    expect(conceptPhotoKey({ placeName: "West Park" })).toBe("garden");
+    expect(conceptPhotoKey({ placeName: "The Window Seat" })).toBe("coffee");
+    expect(
+      conceptPhotoKey({ placeId: "preview:fountain", category: "unexpected" }),
+    ).toBe("fountain");
+    expect(conceptPhotoKey({})).toBe("fountain");
+  });
   it("starts in Maps, then surfaces a separate notification without accepting a quest", () => {
     expect(initialWalk().phase).toBe("walking");
     expect(ticks(initialWalk(), 3).banner).toBe(false);
