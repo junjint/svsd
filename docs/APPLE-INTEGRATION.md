@@ -1,5 +1,7 @@
 # Apple integrations — actual use and limits
 
+Historical prototype notes below. For the current Rebecca-baseline restructure and its simulated walking integration, see [the current guide](REBECCA-BASELINE.md). It uses a local schematic SVG, not Leaflet tiles or MapKit; system UI remains simulated.
+
 Neither requested Apple server was already registered among available Codex tools/configured MCP servers. No global configuration, credentials, accounts or permissions were changed.
 
 **Apple Docs MCP:** actually launched `@kimsungwhee/apple-docs-mcp@1.0.26` through a temporary local stdio JSON-RPC client. Initialization and `tools/list` succeeded. `get_apple_doc_content` returned ActivityKit Live Activities, UserNotifications authorization, MapKit JS, SwiftUI NavigationStack, presentation detents, LongPressGesture, WidgetKit and UIKit safeAreaInsets documentation. This was a local MCP research session, not a permanently registered Codex connection. The client is retained in this chat's `work/apple-docs-client.mjs`.
@@ -12,11 +14,13 @@ Research informed the separation of notification banners from active-task Live A
 
 ## Environment
 
-**No environment variables/API keys are required.** Historical repository `.env` values are unused by the new app. OpenStreetMap tiles are optional network content; the local vector map remains functional if tiles fail.
+**No environment variables/API keys are required.** Historical repository `.env` values are unused by the new app. The current map uses only bundled abstract local vectors; external tiles were removed to simplify the presentation.
 
 Future integrations, not implemented: a server-side Apify secret (for example `APIFY_API_TOKEN`) for business search, and a backend MapKit token endpoint with Apple account/team/key configuration. Never put an Apify secret or Apple private signing key in frontend code. The renderer would consume only its authorized Maps token.
 
 The prototype cannot deliver real iOS push notifications, create ActivityKit/WidgetKit surfaces, access background GPS, or extend Apple Maps. Those system experiences are faithfully simulated within the phone.
+
+October 22 presentation update: every reload now starts in the simulated Maps walking flow, with a compact walking activity already visible. A separate Sidequest notification opens a branded app-handoff sheet. Accepting the detour automatically previews the expanded Live Activity; Continue walking collapses it, and arrival uses its own banner and sheet. The local map uses a restrained Apple Maps-inspired palette and visual hierarchy, not Apple map data. Directly consulted Apple's [Live Activities guidance](https://developer.apple.com/design/human-interface-guidelines/live-activities) and [walking directions guide](https://support.apple.com/en-gb/guide/iphone/iph8eae299d1/ios) for the visual/interaction pattern; this is an interpretation, not a native implementation.
 
 ## Consulted sources
 

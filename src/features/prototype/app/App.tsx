@@ -1,4 +1,10 @@
-import { useEffect, useReducer, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { Icon } from "../Icons";
 import { fontCSS, grain } from "./assets";
 import { questById } from "./data";
@@ -20,6 +26,7 @@ import { WalkShortcut } from "./WalkShortcut";
 import "../prototype.css";
 import "./app.css";
 import "./paper.css";
+import "./navigation.css";
 
 export default function SidequestApp() {
   const [state, dispatch] = useReducer(appReducer, initialApp),
@@ -32,11 +39,12 @@ export default function SidequestApp() {
       if (cancelled) return;
       try {
         dispatch({
-          type: "restore",
+          type: "launch-demo",
           raw: window.localStorage.getItem(STORAGE_KEY),
         });
       } catch {
         setStorageError(true);
+        dispatch({ type: "launch-demo", raw: null });
       }
       setBooted(true);
     });
@@ -65,6 +73,32 @@ export default function SidequestApp() {
     const timer = setInterval(() => dispatch({ type: "tick" }), 1000);
     return () => clearInterval(timer);
   }, [ticking]);
+  const shownActivities = useRef(new Set<string>());
+  const { id: journeyId, activeQuestId, phase } = state.journey;
+  useEffect(() => {
+    if (
+      state.mode !== "guided" ||
+      state.screen !== "map" ||
+      phase !== "detouring" ||
+      !activeQuestId ||
+      state.overlay
+    )
+      return;
+    const key = `${journeyId}:${activeQuestId}`;
+    if (shownActivities.current.has(key)) return;
+    const timer = setTimeout(() => {
+      shownActivities.current.add(key);
+      dispatch({ type: "preview-activity", journeyId, questId: activeQuestId });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [
+    journeyId,
+    activeQuestId,
+    phase,
+    state.mode,
+    state.screen,
+    state.overlay,
+  ]);
   useEffect(() => {
     const back = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;

@@ -25,6 +25,7 @@ export function along(path: readonly Point[], progress: number): Point {
 const key = (p: Point) => p.map((n) => n.toFixed(7)).join(",");
 /** Dijkstra over the seeded street network, with projected start/end connectors. */
 export function walkingRoute(start: Point, end: Point): Point[] {
+  if (meters(start, end) < 0.05) return [start];
   const segments: [Point, Point][] = [];
   for (const street of streets)
     for (let i = 1; i < street.points.length; i++)

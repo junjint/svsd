@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text as RNText,
@@ -30,10 +31,10 @@ export function Paper({ children, style, edges = ['top'] }: { children?: ReactNo
 }
 
 /** Liquid glass surfaces: icon buttons, sheets, the tab bar, toasts */
-export function Frost({ children, style }: { children?: ReactNode; style?: StyleProp<ViewStyle>; intensity?: number }) {
+export function Frost({ children, style, hovered }: { children?: ReactNode; style?: StyleProp<ViewStyle>; intensity?: number; hovered?: boolean }) {
   const r = (StyleSheet.flatten as (s: unknown) => ViewStyle | undefined)(style)?.borderRadius;
   return (
-    <Glass radius={typeof r === 'number' ? r : 0} style={[{ overflow: 'visible' }, style]}>
+    <Glass radius={typeof r === 'number' ? r : 0} hovered={hovered} style={[{ overflow: 'visible' }, style]}>
       {children}
     </Glass>
   );
@@ -70,22 +71,22 @@ export function FeatherImage({
 
 type Variant = keyof typeof type;
 
-const INTER: Record<string, string> = {
+const SANS: Record<string, string> = {
   '400': fonts.sans,
   normal: fonts.sans,
   '500': fonts.sansMedium,
   '600': fonts.sansSemi,
   '700': fonts.sansBold,
   bold: fonts.sansBold,
-  '800': fonts.sansBold,
-  '900': fonts.sansBold,
+  '800': fonts.sansHeavy,
+  '900': fonts.sansHeavy,
 };
 const GARAMOND = new Set<string>([fonts.serif, fonts.serifItalic]);
 
 /**
  * Custom fonts ship one file per weight, so `fontWeight` can't pick the
  * face. Read the weight and style a text asks for and hand back the
- * Inter or Garamond file that draws it.
+ * Plus Jakarta Sans or Garamond file that draws it.
  */
 export function resolveFont(style: StyleProp<TextStyle>): TextStyle {
   const f = StyleSheet.flatten(style) ?? {};
@@ -93,9 +94,9 @@ export function resolveFont(style: StyleProp<TextStyle>): TextStyle {
   if (fam && GARAMOND.has(fam)) {
     return { fontFamily: f.fontStyle === 'italic' ? fonts.serifItalic : fam, fontWeight: 'normal', fontStyle: 'normal' };
   }
-  if (fam && !fam.startsWith('Inter_')) return {};
-  const weight = String(f.fontWeight ?? (fam ? fam.slice(6, 9) : '400'));
-  return { fontFamily: INTER[weight] ?? fonts.sans, fontWeight: 'normal' };
+  if (fam && !fam.startsWith('PlusJakartaSans_')) return {};
+  const weight = String(f.fontWeight ?? (fam ? (fam.match(/_(\d{3})/)?.[1] ?? '400') : '400'));
+  return { fontFamily: SANS[weight] ?? fonts.sans, fontWeight: 'normal' };
 }
 
 export function Text({ variant = 'body', style, ...rest }: TextProps & { variant?: Variant }) {
@@ -130,14 +131,24 @@ export function PillButton({
         if (sound) feedback(sound);
         onPress();
       }}
-      style={({ pressed }) => [{ opacity: disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}
+      style={(state) => [
+        { opacity: disabled ? 0.45 : 1, transform: [{ scale: state.pressed ? 0.97 : hoverOf(state) && !disabled ? 1.015 : 1 }] },
+        HOVER_EASE,
+        style,
+      ]}
     >
-      <Glass tone={clear ? 'clear' : 'ink'} interactive style={styles.pill}>
+      {(state) => (
+      <Glass tone={clear ? 'clear' : 'ink'} interactive hovered={hoverOf(state) && !disabled} style={styles.pill}>
         <Text variant="headline" style={{ color: clear ? color.ink : color.white }}>{label}</Text>
       </Glass>
+      )}
     </Pressable>
   );
 }
+
+/** RN-web's Pressable reports `hovered`; native never does */
+export const hoverOf = (state: object) => !!(state as { hovered?: boolean }).hovered;
+const HOVER_EASE = Platform.OS === 'web' ? ({ transitionProperty: 'transform', transitionDuration: '160ms', transitionTimingFunction: 'ease-out' } as object) : null;
 
 /** Round frosted icon button (back, grid, close) */
 export function GlassIconButton({
@@ -153,8 +164,11 @@ export function GlassIconButton({
 }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={8}>
-      {({ pressed }) => (
-        <Frost style={[{ width: size, height: size, borderRadius: size / 2, transform: [{ scale: pressed ? 0.92 : 1 }] }, shadow.lift]}>
+      {(state) => (
+        <Frost
+          hovered={hoverOf(state)}
+          style={[{ width: size, height: size, borderRadius: size / 2, transform: [{ scale: state.pressed ? 0.92 : hoverOf(state) ? 1.06 : 1 }] }, HOVER_EASE, shadow.lift]}
+        >
           <View style={styles.center}>{children}</View>
         </Frost>
       )}

@@ -10,6 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { START, quests, streets, destinationById, type Point } from "./data";
 import { currentPath, type AppState } from "./model";
 import { walkingRoute } from "./geo";
+import { mapBlocks, mapRoadLabels } from "./mapScene";
 
 /** Renderer boundary: swap this component for MapKit JS without changing journey state. */
 export interface MapHandle {
@@ -31,8 +32,7 @@ export const InteractiveMap = forwardRef<
     user = useRef<Leaflet.Marker | null>(null),
     position = useRef(state.position),
     path = useRef<Point[]>([]);
-  const [ready, setReady] = useState(0),
-    [offline, setOffline] = useState(false);
+  const [ready, setReady] = useState(0);
   const j = state.journey;
   const route = currentPath(state);
   useEffect(() => {
@@ -98,43 +98,45 @@ export const InteractiveMap = forwardRef<
       map.current = m;
       m.createPane("demo-base");
       m.getPane("demo-base")!.style.zIndex = "100";
-      // Offline vector graph stays under the live basemap. Both use the same lat/lon projection.
+      for (const block of mapBlocks) {
+        L.rectangle(block.bounds.map(coords) as Leaflet.LatLngBoundsLiteral, {
+          pane: "demo-base",
+          stroke: false,
+          interactive: false,
+          fillColor: block.green ? "#d6e4c3" : "#eae7df",
+          fillOpacity: 1,
+        }).addTo(m);
+      }
+      // A quiet geographic stage, rather than a detailed live tile map.
       for (const road of streets) {
         L.polyline(road.points.map(coords), {
           pane: "demo-base",
-          color: "#fffef9",
-          weight: 14,
+          color: "#d9d6ce",
+          weight: road.name === "Campus walk" ? 5 : 19,
           opacity: 1,
+          interactive: false,
         }).addTo(m);
         L.polyline(road.points.map(coords), {
           pane: "demo-base",
-          color: "#dedcd3",
-          weight: 1,
-          opacity: 0.7,
+          color: "#fffefa",
+          weight: road.name === "Campus walk" ? 3 : 17,
+          opacity: 1,
+          interactive: false,
         }).addTo(m);
-        const point = road.points[Math.floor(road.points.length / 2)];
-        L.marker(coords(point), {
+      }
+      for (const label of mapRoadLabels) {
+        L.marker(coords(label.point), {
           pane: "demo-base",
           interactive: false,
+          keyboard: false,
           icon: L.divIcon({
-            className: "sq-road-label",
-            html: road.name,
+            className: `sq-road-label ${label.vertical ? "vertical" : ""}`,
+            html: `<span>${label.name}</span>`,
             iconSize: [110, 20],
             iconAnchor: [55, 10],
           }),
         }).addTo(m);
       }
-      const tiles = L.tileLayer(
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { maxZoom: 19, crossOrigin: true },
-      ).addTo(m);
-      let errors = 0;
-      tiles.on("tileerror", () => {
-        if (++errors >= 3 && !cancelled) {
-          m.removeLayer(tiles);
-          setOffline(true);
-        }
-      });
       layers.current = L.layerGroup().addTo(m);
       user.current = L.marker(coords(START), {
         zIndexOffset: 1000,
@@ -169,7 +171,7 @@ export const InteractiveMap = forwardRef<
           j.originalStart,
           destinationById(j.destinationId).position,
         ).map(coords),
-        { color: "#969c9c", weight: 3, dashArray: "4 8", opacity: 0.65 },
+        { color: "#8fa8bb", weight: 3, dashArray: "3 8", opacity: 0.45 },
       ).addTo(group);
     L.polyline(route.map(coords), {
       color: "#fff",
@@ -177,8 +179,8 @@ export const InteractiveMap = forwardRef<
       opacity: 0.9,
     }).addTo(group);
     const line = L.polyline(route.map(coords), {
-      color: active ? "#9a7448" : "#6d8eae",
-      weight: 5,
+      color: "#087dff",
+      weight: 6,
       lineCap: "round",
       lineJoin: "round",
       className: "sq-route-line",
@@ -189,6 +191,8 @@ export const InteractiveMap = forwardRef<
       j.phase === "idle" ? state.selectedDestination : j.destinationId,
     );
     L.marker(coords(destination.position), {
+      interactive: false,
+      keyboard: false,
       icon: L.divIcon({
         className: "sq-destination-marker",
         html: "<span>⚑</span>",
@@ -200,6 +204,12 @@ export const InteractiveMap = forwardRef<
       .addTo(group)
       .bindTooltip(destination.name, { direction: "top" });
     for (const q of quests) {
+      if (
+        state.mode === "guided" &&
+        q.id !== j.activeQuestId &&
+        q.id !== j.suggestionId
+      )
+        continue;
       const marker = L.marker(coords(q.position), {
         title: q.name,
         keyboard: true,
@@ -210,6 +220,7 @@ export const InteractiveMap = forwardRef<
           iconAnchor: [15, 15],
         }),
       }).addTo(group);
+      marker.getElement()?.setAttribute("aria-label", q.name);
       marker.on("click", () => onQuest(q.id));
       marker.bindTooltip(q.name, { direction: "top" });
     }
@@ -227,9 +238,11 @@ export const InteractiveMap = forwardRef<
     ready,
     j.legStart,
     j.activeQuestId,
+    j.suggestionId,
     j.destinationId,
     state.selectedDestination,
     state.prefs.enabled,
+    state.mode,
     onQuest,
   ]);
   useEffect(() => {
@@ -244,20 +257,7 @@ export const InteractiveMap = forwardRef<
       />
       {!ready && <div className="sq-map-loading">Finding your way…</div>}
       <div className="sq-map-credit">
-        {offline ? (
-          "Offline · demo street map"
-        ) : (
-          <>
-            ©{" "}
-            <a
-              href="https://www.openstreetmap.org/copyright"
-              target="_blank"
-              rel="noreferrer"
-            >
-              OpenStreetMap contributors
-            </a>
-          </>
-        )}
+        Simplified demo map · not live directions
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 # Archived cinematic prototype
 
-This document describes the preserved earlier six-scene implementation, not the active full app. See [the full-app guide](FULL-APP.md) for current features and behavior.
+This document describes the preserved earlier six-scene implementation, not the active app. See [the current guide](REBECCA-BASELINE.md) for current features and behavior.
 
 ## One phone, one little detour
 

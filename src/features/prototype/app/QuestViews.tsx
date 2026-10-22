@@ -116,6 +116,16 @@ export function QuestSheet({
       onClose={() => dispatch({ type: "close" })}
       className="sq-quest-sheet"
     >
+      <div
+        className="sq-app-handoff"
+        aria-label="From Maps to Sidequest preview"
+      >
+        <Icon name="map" />
+        <span>Maps</span>
+        <Icon name="arrow" />
+        <img src={logo} alt="" />
+        <strong>Sidequest</strong>
+      </div>
       <img
         className="sq-quest-hero"
         src={photos[quest.image]}

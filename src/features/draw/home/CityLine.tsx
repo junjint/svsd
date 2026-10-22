@@ -2,7 +2,8 @@ import { StyleSheet } from 'react-native';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { showToast } from '@/ui';
-import { DEMO_CITIES } from '@/data/demoCities';
+import { COUNTRIES, DEMO_CITIES, type CountryCode } from '@/data/demoCities';
+import { Flag } from '@/features/location/Flag';
 import { Text, color } from '@/theme';
 import { PressScale } from '../PressScale';
 import { formatRadius } from './locationSeam';
@@ -13,6 +14,9 @@ export function CityLine({ onOpen }: { onOpen: () => void }) {
   const radius = useSidequestStore((s) => s.prefs.radiusMiles);
   const setDemoCity = useSidequestStore((s) => s.setDemoCity);
 
+  const country = location.country && location.country in COUNTRIES ? (location.country as CountryCode) : undefined;
+
+  // demo stand-in for travelling: hop between the two curated cities
   const flipDemo = () => {
     if (!location.isDemo) return;
     const next = location.demoCity === 'nyc' ? 'ann_arbor' : 'nyc';
@@ -31,6 +35,7 @@ export function CityLine({ onOpen }: { onOpen: () => void }) {
       accessibilityHint={location.isDemo ? 'Long-press to switch the demo city' : undefined}
       style={styles.line}
     >
+      {country ? <Flag code={country} width={18} /> : null}
       <Text style={styles.text}>
         {location.cityLabel}
         <Text style={styles.dot}> · </Text>
@@ -42,7 +47,7 @@ export function CityLine({ onOpen }: { onOpen: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  line: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  line: { alignSelf: 'center', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12 },
   text: { fontSize: 15, fontWeight: '500', color: color.ink2, letterSpacing: -0.1 },
   dot: { color: color.ink3 },
   caret: { fontSize: 11, color: color.ink3 },

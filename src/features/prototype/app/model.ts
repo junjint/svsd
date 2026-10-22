@@ -67,6 +67,8 @@ export interface AppState {
   permission: "location" | "notifications" | null;
   asked: { location: boolean; notifications: boolean };
   prefs: Preferences;
+  // Presentation defaults are session-only; don't overwrite remembered settings.
+  demoSavedPrefs: Preferences | null;
   screen: "map" | "memories" | "preferences";
   overlay: Overlay;
   mode: "guided" | "explore";
@@ -119,6 +121,7 @@ export const initialApp: AppState = {
   permission: null,
   asked: { location: false, notifications: false },
   prefs: defaultPreferences,
+  demoSavedPrefs: null,
   screen: "map",
   overlay: null,
   mode: "explore",
@@ -250,6 +253,8 @@ function suggest(state: AppState, manual = false): AppState {
 }
 export type AppAction =
   | { type: "restore"; raw: string | null }
+  | { type: "launch-demo"; raw: string | null }
+  | { type: "preview-activity"; journeyId: number; questId: string }
   | {
       type:
         | "onboard-next"
@@ -259,6 +264,8 @@ export type AppAction =
         | "tick"
         | "start"
         | "guided"
+        | "restart-demo"
+        | "demo-notification"
         | "explore"
         | "end"
         | "suggest"
@@ -287,6 +294,35 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "restore":
       return restoreApp(action.raw);
+    case "launch-demo":
+      return appReducer(restoreApp(action.raw), { type: "restart-demo" });
+    case "restart-demo":
+      return startJourney(
+        {
+          ...state,
+          demoSavedPrefs: state.demoSavedPrefs ?? state.prefs,
+          prefs: {
+            ...defaultPreferences,
+            categories: [...defaultPreferences.categories],
+            location: "demo",
+            notifications: true,
+          },
+        },
+        true,
+      );
+    case "demo-notification":
+      return state.mode === "guided" && j.phase === "navigating"
+        ? suggest(state)
+        : state;
+    case "preview-activity":
+      return state.mode === "guided" &&
+        state.screen === "map" &&
+        j.phase === "detouring" &&
+        j.id === action.journeyId &&
+        j.activeQuestId === action.questId &&
+        !state.overlay
+        ? { ...state, overlay: { kind: "activity" } }
+        : state;
     case "onboard-next":
       return { ...state, step: Math.min(2, state.step + 1) };
     case "onboard-back":
@@ -321,6 +357,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const next = {
         ...state,
         prefs,
+        demoSavedPrefs: state.demoSavedPrefs
+          ? {
+              ...state.demoSavedPrefs,
+              ...action.patch,
+              ...(action.patch.radius === undefined
+                ? {}
+                : { radius: prefs.radius }),
+              ...(action.patch.maxDetour === undefined
+                ? {}
+                : { maxDetour: prefs.maxDetour }),
+            }
+          : null,
         banner: !prefs.notifications || prefs.quiet ? null : state.banner,
       };
       if (
@@ -366,7 +414,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "guided":
       return startJourney(state, true);
     case "explore":
-      return { ...state, mode: "explore", screen: "map", overlay: null };
+      return {
+        ...state,
+        mode: "explore",
+        screen: "map",
+        overlay: null,
+        prefs: state.demoSavedPrefs ?? state.prefs,
+        demoSavedPrefs: null,
+      };
     case "pause":
       return { ...state, paused: !state.paused };
     case "destination":
@@ -603,6 +658,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
       if (
         state.paused ||
+        (state.mode === "guided" && state.overlay?.kind === "activity") ||
         !["navigating", "suggestion", "detouring", "resumed"].includes(j.phase)
       )
         return next;
@@ -658,7 +714,7 @@ export function persistedState(state: AppState) {
   return {
     version: 3,
     onboarded: state.onboarded,
-    prefs: state.prefs,
+    prefs: state.demoSavedPrefs ?? state.prefs,
     memories: state.memories,
     saved: state.saved,
     selectedDestination: state.selectedDestination,

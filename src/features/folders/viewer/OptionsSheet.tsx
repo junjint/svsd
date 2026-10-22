@@ -14,6 +14,7 @@ export function OptionsSheet({
   onOpenQuest,
   onDeletePhoto,
   onDeleteFolder,
+  deleteLabel = 'Delete folder',
 }: {
   folder: QuestFolder;
   visible: boolean;
@@ -23,6 +24,7 @@ export function OptionsSheet({
   onOpenQuest?: () => void;
   onDeletePhoto: () => void;
   onDeleteFolder: () => void;
+  deleteLabel?: string;
 }) {
   return (
     <Sheet visible={visible} onClose={onClose} title={folder.title}>
@@ -48,7 +50,7 @@ export function OptionsSheet({
             <View style={styles.hair} />
           </>
         )}
-        <Row label="Delete folder" tone="signal" onPress={onDeleteFolder} />
+        <Row label={deleteLabel} tone="signal" onPress={onDeleteFolder} />
       </View>
     </Sheet>
   );

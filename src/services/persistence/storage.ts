@@ -17,6 +17,7 @@ const KEYS = {
   v2Badges: '@sidequest/v2/badges',
   v2DrawCount: '@sidequest/v2/draw_count',
   v2Seeded: '@sidequest/v2/seeded',
+  previewImported: '@sidequest/v3/imported',
 } as const;
 
 export type StorageKey = keyof typeof KEYS;
@@ -45,6 +46,6 @@ export const storage = {
   setJson,
   remove,
   async clearAllPersonalData(): Promise<void> {
-    await AsyncStorage.multiRemove(Object.values(KEYS));
+    await AsyncStorage.multiRemove([...Object.values(KEYS), 'sidequest:app:v3']);
   },
 };

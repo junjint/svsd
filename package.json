@@ -11,6 +11,7 @@
     "prototype:serve": "npx --yes serve --single dist -l 8080 --no-clipboard",
     "lint": "expo lint",
     "lint:prototype": "eslint src/app src/features/prototype __tests__/prototype.test.ts",
+    "lint:integration": "eslint src/app src/features/navigation src/features/quest/HoldToComplete.tsx src/features/draw/result/SlideToGo.tsx src/ui/DeviceFrame.tsx src/features/draw/home/Header.tsx src/stores/sidequestStore.ts src/services/persistence __tests__/walking.test.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",

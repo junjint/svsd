@@ -1,43 +1,35 @@
 # Sidequest
 
-**A little off your usual way.**
+Rebecca’s printer-first Sidequest app, with a focused iOS-style walking demo added alongside it.
 
-A complete browser-local Sidequest concept app, inside the existing realistic iPhone. Walk, receive a notification, discover a detour, and return to your original destination with a memory worth keeping.
-
-Leaflet provides interactive OpenStreetMap tiles with a local vector fallback. Quest places, walking, approximate route estimates, iOS permissions, notification banners and Live Activities are simulated. No account or API key is required. This is not an Apple Maps extension or native ActivityKit implementation.
+The active app uses Rebecca Sun’s `8516b88` baseline: brushed-metal printer, thermal receipts, Plus Jakarta Sans, Library / + / Profile tabs, folders, photo calendar and hold-to-finish. Maps is a secondary integration, not a replacement design system.
 
 ## Preview
 
 ```sh
 npm install
-npm run web
+npm run web -- --port 49870
 ```
 
-Or build and serve a production preview:
+Open `http://localhost:49870/`. Web entry opens the original animated printer home. Print a Sidequest, reroll a line and slide to go. “Get directions” in its folder opens the walking demo for that quest. The small arrow at the top-left of home starts a generic walking example.
 
-```sh
-npm run prototype
-```
+In the generic demo, a nearby notification appears after four active walking ticks. Open the original receipt sheet and choose “Take this detour.” A simulated expanded Live Activity appears; “Continue walking” collapses it. Tap or hold the island to expand again. The simple map supports pan, zoom, recenter and pause. Arrival follows automatically, or use “Preview arrival.” Open the notification and hold to finish (keyboard activation is also available). The completed quest appears in the same Library as printed quests.
 
-The recovered development session uses `BROWSER=none npm run web -- --port 49870` at **http://localhost:49870/**. To serve an existing export, use `npm run prototype:serve`.
+Maps, location movement, estimates, notification banners and Live Activities are browser simulations. The map is a local schematic SVG, not geographic navigation or Apple MapKit tiles. No native ActivityKit, background notifications, GPS permission or Apple Maps extension is implemented. The walking integration currently targets web; native routes show an explanatory fallback.
 
-## Walk through it
-
-Complete onboarding, enabling the demo location and simulated banners for the full guided walk. A notification appears after five walking ticks. Tap it for a photo-first sheet, then accept, skip or save. Acceptance redraws the route and starts a separate Dynamic Island activity. Tap the island to revisit the quest; hold, right-click or Arrow Down to expand its controls. Arrival follows about 34 Guided detour ticks. Keep an optional note or local photo, complete the discovery, and resume the original walk.
-
-Explore mode includes map pan/zoom, destination selection, four seeded quests, route overview, cancellation, manual discovery, saved places and editable memories. All preference controls affect behavior. Quiet mode suppresses automatic suggestions; notification-off hides banners but leaves the map opportunity available. Replay is in Preferences. Three bottom tabs, sheet close/drag gestures and Escape provide navigation. Motion respects reduced-motion preferences.
-
-Preferences, bookmarks, notes and locally compressed photos persist in this browser. Active simulated journeys deliberately reset on reload. Photos never leave the browser. The original logo, paper palette and EB Garamond remain; the active interface now uses Plus Jakarta Sans. The Library / + / Profile bar includes an invitation printer, numbered keepsake receipts, and a persistent “Your walk” map shortcut. See [the app guide](docs/FULL-APP.md), [Apple integration status](docs/APPLE-INTEGRATION.md), and [image provenance](assets/prototype/README.md).
+Existing native-store data is preserved. Earlier browser-preview memories and bookmarks are imported once into the shared Library with stable IDs; notes, actual visit dates and supported local photo data are retained. Old fallback imagery is not turned into a personal photo. Data remains local. Rebecca’s seeded sample Library remains available.
 
 ## Checks
 
 ```sh
 npm run typecheck
-npm run lint:prototype
+npm run lint:integration
 npm test -- --runInBand
 npx expo export --platform web
 ```
 
-The active app lives in `src/features/prototype/app/`. The earlier cinematic implementation, reducer, illustration and [guide](docs/LEGACY-CINEMATIC.md) remain preserved. Historical mobile modules and [the previous spec](docs/SPEC.md) stay disconnected. Full-repository lint includes those legacy modules (61 existing errors, 17 warnings); focused lint checks reachable app code. Native builds retain the browser-preview message; this concept targets web.
+The active app is `src/app`, `src/features/draw`, folders/profile/quest modules and `src/theme`. The focused integration is `src/features/navigation`. The earlier map-first UI in `src/features/prototype` is retained but unmounted; only its data catalog supports migration. Full-repository lint still reports issues in restored/older modules; focused integration lint passes.
+
+See [current architecture and verification](docs/REBECCA-BASELINE.md). Earlier prototype guides are historical, not the active app specification.
 
 See [LICENSE](LICENSE).

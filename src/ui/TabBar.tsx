@@ -6,9 +6,10 @@ import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from 'expo-
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '@/services/sound';
-import { Frost, color, shadow } from '@/theme';
+import { Frost, color, fonts, shadow } from '@/theme';
 import { OPEN_EASE, TILE } from './motion';
 import { TAB_ICONS } from './TabIcons';
+import { askNewSidequest } from './newSidequest';
 
 /* Port of Bencho `tab-bar`: icon tabs on a floating frosted bar. The tab
    you pick opens to show its name, and ONE light tile slides under it on
@@ -44,6 +45,9 @@ export const useTabBarInset = useTabBarSpace;
 
 const openWidth = (labelW: number) => PAD_X + ICON + LABEL_GAP + labelW + PAD_X + 4;
 
+/** The Draw is never a named tab: it's the round + in the middle */
+const PLUS_ROUTE = 'draw';
+
 export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const still = useReducedMotion();
@@ -54,7 +58,10 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   });
   /* measured label widths; a guess until the hidden copies lay out */
   const [labelW, setLabelW] = useState<number[]>(() => labels.map((l) => l.length * 7.6));
-  const widths = labels.map((_, i) => (i === state.index ? openWidth(labelW[i] ?? 40) : CLOSED));
+  /* every named tab gets the same fixed slot, wide enough for the longest
+     name, so opening one never shoves the + off centre */
+  const slot = Math.max(CLOSED, ...state.routes.map((r, i) => (r.name === PLUS_ROUTE ? 0 : openWidth(labelW[i] ?? 40))));
+  const widths = state.routes.map((r) => (r.name === PLUS_ROUTE ? TAB_H : slot));
   const tileX = PAD + widths.slice(0, state.index).reduce((a, w) => a + w + GAP, 0);
   const tileW = widths[state.index] ?? CLOSED;
 
@@ -104,20 +111,26 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
         ))}
       </View>
 
-      <Frost intensity={50} style={[styles.bar, shadow.float]}>
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(17,17,20,0.05)' }]} />
+      <Frost intensity={50} style={styles.bar}>
         <Animated.View style={[styles.tile, tile]} />
         <View role="tablist" style={styles.row}>
           {state.routes.map((route, i) => {
             const focused = i === state.index;
             const Icon = TAB_ICONS[route.name];
             const onPress = () => {
+              if (route.name === PLUS_ROUTE) {
+                feedback('drawPress');
+                askNewSidequest();
+              }
               const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!focused && !event.defaultPrevented) {
-                feedback('tabSwitch');
+                if (route.name !== PLUS_ROUTE) feedback('tabSwitch');
                 navigateToTab(route.key);
               }
             };
+            if (route.name === PLUS_ROUTE) {
+              return <PlusTab key={route.key} label={labels[i]!} focused={focused} onPress={onPress} />;
+            }
             return (
               <Tab
                 key={route.key}
@@ -126,6 +139,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
                 count={state.routes.length}
                 focused={focused}
                 width={widths[i]!}
+                labelWidth={labelW[i] ?? 40}
                 still={still}
                 onPress={onPress}
                 onLongPress={() => emitter.emit({ type: 'tabLongPress', target: route.key })}
@@ -139,12 +153,33 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   );
 }
 
+/** New sidequest: a solid ink disc with a plus, the same height as a tab.
+    The sliding tile tucks in behind it when the Draw is open. */
+function PlusTab({ label, focused, onPress }: { label: string; focused: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      role="tab"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
+      onPress={onPress}
+      style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}
+    >
+      <View style={styles.plus}>
+        <View style={[styles.plusBar, { width: 18, height: 2.2 }]} />
+        <View style={[styles.plusBar, { width: 2.2, height: 18 }]} />
+      </View>
+    </Pressable>
+  );
+}
+
 function Tab({
   label,
   index,
   count,
   focused,
   width,
+  labelWidth,
   still,
   onPress,
   onLongPress,
@@ -155,37 +190,33 @@ function Tab({
   count: number;
   focused: boolean;
   width: number;
+  labelWidth: number;
   still: boolean;
   onPress: () => void;
   onLongPress: () => void;
   icon: (tint: string) => React.ReactNode;
 }) {
-  const w = useSharedValue(width);
+  const open = useSharedValue(focused ? 1 : 0);
   const ink = useSharedValue(focused ? 1 : 0);
-  const slide = useSharedValue(focused ? 1 : 0);
 
-  useEffect(() => {
-    w.value = still ? width : withTiming(width, OPEN_EASE);
-  }, [width, still, w]);
-
-  /* the name slides out from behind the icon as the room opens: a beat
-     late, fading over 420ms while it travels 8px over 600ms. Closing, it
-     fades in 160ms and slides back over 420ms, both at once. */
+  /* the slot never changes size: the name grows out beside the icon, which
+     glides left to make room, and fades in a beat late. Closing, it fades
+     fast and folds back. */
   useEffect(() => {
     if (still) {
-      ink.value = slide.value = focused ? 1 : 0;
+      open.value = ink.value = focused ? 1 : 0;
     } else if (focused) {
+      open.value = withTiming(1, OPEN_EASE);
       ink.value = withDelay(160, withTiming(1, { duration: 420, easing: CSS_EASE }));
-      slide.value = withDelay(160, withTiming(1, OPEN_EASE));
     } else {
       ink.value = withTiming(0, { duration: 160, easing: CSS_EASE });
-      slide.value = withTiming(0, { ...OPEN_EASE, duration: 420 });
+      open.value = withTiming(0, { ...OPEN_EASE, duration: 420 });
     }
-  }, [focused, still, ink, slide]);
+  }, [focused, still, open, ink]);
 
-  const box = useAnimatedStyle(() => ({ width: w.value }));
-  const word = useAnimatedStyle(() => ({ opacity: ink.value, transform: [{ translateX: (1 - slide.value) * -8 }] }));
-  const tint = focused ? color.cobalt : color.ink;
+  const room = useAnimatedStyle(() => ({ width: open.value * (LABEL_GAP + labelWidth) }));
+  const word = useAnimatedStyle(() => ({ opacity: ink.value, transform: [{ translateX: (1 - open.value) * -8 }] }));
+  const tint = color.ink;
 
   return (
     <Pressable
@@ -197,12 +228,14 @@ function Tab({
       onLongPress={onLongPress}
       style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
     >
-      <Animated.View style={[styles.tab, box]}>
-        <View style={styles.icon}>{icon(tint)}</View>
-        <Animated.Text numberOfLines={1} style={[styles.label, styles.name, { color: tint }, word]}>
-          {label}
-        </Animated.Text>
-      </Animated.View>
+      <View style={[styles.tab, { width }]}>
+        <View style={{ width: ICON, height: ICON, opacity: focused ? 1 : 0.55 }}>{icon(tint)}</View>
+        <Animated.View style={[styles.room, room]}>
+          <Animated.Text numberOfLines={1} style={[styles.label, { color: tint, width: labelWidth + 2 }, word]}>
+            {label}
+          </Animated.Text>
+        </Animated.View>
+      </View>
     </Pressable>
   );
 }
@@ -221,8 +254,17 @@ const styles = StyleSheet.create({
     backgroundColor: color.white,
     ...shadow.lift,
   },
-  tab: { height: TAB_H, overflow: 'hidden', justifyContent: 'center' },
-  icon: { position: 'absolute', left: PAD_X, top: (TAB_H - ICON) / 2 },
-  label: { fontSize: 14, fontWeight: '600', letterSpacing: -0.1 },
-  name: { position: 'absolute', left: PAD_X + ICON + LABEL_GAP, width: 120 },
+  tab: { height: TAB_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  room: { overflow: 'hidden', alignItems: 'flex-end', height: TAB_H, justifyContent: 'center' },
+  label: { fontFamily: fonts.sansSemi, fontSize: 14, letterSpacing: -0.1 },
+  plus: {
+    width: TAB_H,
+    height: TAB_H,
+    borderRadius: TAB_H / 2,
+    backgroundColor: color.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.28), 0 4px 12px rgba(21,16,14,0.22)',
+  },
+  plusBar: { position: 'absolute', borderRadius: 1.2, backgroundColor: color.white },
 });

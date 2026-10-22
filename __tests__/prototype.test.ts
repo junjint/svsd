@@ -37,6 +37,14 @@ import {
   memoriesOnDay,
   monthCells,
 } from "../src/features/prototype/app/calendar";
+import {
+  walkingCue,
+  walkthroughStep,
+} from "../src/features/prototype/app/demo";
+import {
+  mapBlocks,
+  mapRoadLabels,
+} from "../src/features/prototype/app/mapScene";
 const start: StoryAction = { type: "start" };
 const next: StoryAction = { type: "next" };
 const run = (...actions: StoryAction[]): StoryState =>
@@ -644,6 +652,156 @@ describe("invitation printer: paper ritual, existing walk state", () => {
       );
       expect(returned.journey).toBe(walking.journey);
       expect(returned.screen).toBe("map");
+    }
+  });
+});
+
+describe("presentation-first reload and iOS walkthrough", () => {
+  it("launches directly into a moving guided walk on a fresh or corrupt reload", () => {
+    for (const raw of [null, "{invalid"]) {
+      const boot = appReducer(initialApp, { type: "launch-demo", raw });
+      expect(boot).toMatchObject({
+        onboarded: true,
+        mode: "guided",
+        screen: "map",
+        paused: false,
+      });
+      expect(boot.journey).toMatchObject({
+        phase: "navigating",
+        progress: 0,
+        activeQuestId: null,
+      });
+      expect(boot.prefs).toMatchObject({
+        location: "demo",
+        notifications: true,
+        quiet: false,
+        enabled: true,
+      });
+      expect(ticks(boot, 5).banner).toMatchObject({
+        kind: "suggestion",
+        questId: "fountain",
+      });
+    }
+  });
+  it("replays on reload without deleting memories, bookmarks or remembered preferences", () => {
+    const collected = fullRun(
+      ready(),
+      { type: "save", id: "coffee" },
+      { type: "accept", id: "fountain" },
+      { type: "arrive" },
+      { type: "complete", at: "2026-10-22T12:00:00Z" },
+      {
+        type: "prefs",
+        patch: {
+          enabled: false,
+          location: "off",
+          quiet: true,
+          radius: 300,
+          categories: ["art"],
+        },
+      },
+    );
+    const raw = JSON.stringify(persistedState(collected));
+    const boot = appReducer(initialApp, { type: "launch-demo", raw });
+    expect(boot.memories).toEqual(collected.memories);
+    expect(boot.saved).toEqual(collected.saved);
+    expect(boot.prefs.radius).toBe(800);
+    expect(persistedState(boot).prefs).toEqual(collected.prefs);
+    const again = appReducer(initialApp, {
+      type: "launch-demo",
+      raw: JSON.stringify(persistedState(boot)),
+    });
+    expect(again.journey.phase).toBe("navigating");
+    expect(again.banner).toBeNull();
+    expect(again.memories).toHaveLength(1);
+    expect(persistedState(again).prefs).toEqual(collected.prefs);
+  });
+  it("persists deliberate preference edits and restores remembered settings for Explore", () => {
+    const raw = JSON.stringify(
+      persistedState(
+        fullRun(ready(), {
+          type: "prefs",
+          patch: { quiet: true, notifications: false, radius: 400 },
+        }),
+      ),
+    );
+    const boot = fullRun(
+      initialApp,
+      { type: "launch-demo", raw },
+      { type: "prefs", patch: { radius: 900 } },
+    );
+    expect(persistedState(boot).prefs).toMatchObject({
+      quiet: true,
+      notifications: false,
+      radius: 900,
+    });
+    const explore = appReducer(boot, { type: "explore" });
+    expect(explore.demoSavedPrefs).toBeNull();
+    expect(explore.prefs).toEqual(persistedState(boot).prefs);
+    expect(explore.journey).toBe(boot.journey);
+  });
+  it("makes replay deterministic and ignores stale automatic activity previews", () => {
+    const active = fullRun(
+      initialApp,
+      { type: "launch-demo", raw: null },
+      { type: "accept", id: "fountain" },
+    );
+    const preview: AppAction = {
+      type: "preview-activity",
+      journeyId: active.journey.id,
+      questId: "fountain",
+    };
+    expect(appReducer(active, preview).overlay).toEqual({ kind: "activity" });
+    const replay = appReducer(active, { type: "restart-demo" });
+    expect(replay.journey.id).toBeGreaterThan(active.journey.id);
+    expect(replay.position).toEqual(START);
+    expect(appReducer(replay, preview)).toBe(replay);
+    const library = appReducer(active, { type: "screen", screen: "memories" });
+    expect(appReducer(library, preview)).toBe(library);
+    const sheet = appReducer(active, {
+      type: "overlay",
+      overlay: { kind: "quest", questId: "fountain" },
+    });
+    expect(appReducer(sheet, preview)).toBe(sheet);
+  });
+  it("holds walking progress while the Live Activity preview is being inspected", () => {
+    const active = fullRun(
+      ready(),
+      { type: "accept", id: "fountain" },
+      { type: "overlay", overlay: { kind: "activity" } },
+    );
+    expect(ticks(active, 10).journey.progress).toBe(active.journey.progress);
+    expect(
+      ticks(appReducer(active, { type: "close" }), 1).journey.progress,
+    ).toBeGreaterThan(0);
+  });
+  it("provides the five walkthrough stages and handles a finished zero-length route", () => {
+    let state = appReducer(initialApp, { type: "launch-demo", raw: null });
+    expect(walkthroughStep(state)).toBe(1);
+    state = appReducer(state, { type: "demo-notification" });
+    expect(state.banner?.kind).toBe("suggestion");
+    expect(walkthroughStep(state)).toBe(2);
+    state = appReducer(state, { type: "accept", id: "fountain" });
+    expect(walkthroughStep(state)).toBe(3);
+    expect(walkingCue(state).distance).toBeGreaterThanOrEqual(10);
+    state = appReducer(state, { type: "arrive" });
+    expect(walkthroughStep(state)).toBe(4);
+    expect(walkingCue(state).distance).toBe(0);
+    state = appReducer(state, { type: "complete", at: "2026-10-22T12:00:00Z" });
+    expect(walkthroughStep(state)).toBe(5);
+    const finished = ticks(state, 120);
+    expect(walkingCue(finished).distance).toBe(0);
+    expect(walkthroughStep(finished)).toBe(5);
+    expect(
+      walkthroughStep(appReducer(state, { type: "accept", id: "garden" })),
+    ).toBe(3);
+  });
+  it("keeps the local map sparse with four road labels and bounded city blocks", () => {
+    expect(mapRoadLabels).toHaveLength(4);
+    expect(mapBlocks).toHaveLength(36);
+    for (const block of mapBlocks) {
+      expect(block.bounds[0][0]).toBeLessThan(block.bounds[1][0]);
+      expect(block.bounds[0][1]).toBeLessThan(block.bounds[1][1]);
     }
   });
 });

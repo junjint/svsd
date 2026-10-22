@@ -1,11 +1,11 @@
 import { useCallback, useRef, type Dispatch } from "react";
 import { Icon } from "../Icons";
-import { logo } from "./assets";
 import { destinationById, questById } from "./data";
 import { InteractiveMap, type MapHandle } from "./InteractiveMap.web";
 import { currentPath, type AppAction, type AppState } from "./model";
 import { routeLength } from "./geo";
 import { IconButton, Toggle } from "./ui";
+import { walkingCue, walkthroughHints, walkthroughStep } from "./demo";
 
 export function MapHome({
   state,
@@ -31,24 +31,42 @@ export function MapHome({
         75,
     ),
   );
+  const step = walkthroughStep(state),
+    cue = walkingCue(state);
   return (
     <section className="sq-map-home" aria-label="Maps">
       <InteractiveMap ref={map} state={state} onQuest={onQuest} />
       <div className="sq-map-heading">
+        <div className="sq-maps-app-label">
+          <span>
+            <Icon name="map" />
+            Maps
+          </span>
+          <small>WALKING DEMO</small>
+        </div>
         <button
           className="sq-search-pill"
           onClick={() =>
             dispatch({ type: "overlay", overlay: { kind: "search" } })
           }
         >
-          <Icon name="search" />
+          <span className="sq-maneuver-arrow" aria-hidden="true">
+            {j.phase === "idle" ? <Icon name="search" /> : cue.direction}
+          </span>
           <span>
-            {j.phase === "idle" ? "Where are you headed?" : destination.name}
+            <strong>
+              {j.phase === "idle" ? "Where are you headed?" : cue.instruction}
+            </strong>
+            {j.phase !== "idle" && (
+              <small>
+                {cue.street} · {cue.distance} m
+              </small>
+            )}
           </span>
           <Icon name="chevron" />
         </button>
         <div className="sq-map-status">
-          <img src={logo} alt="Sidequest" />
+          <Icon name="spark" />
           <span>
             {!state.prefs.enabled
               ? "Taking a pause"
@@ -68,6 +86,9 @@ export function MapHome({
         </div>
       </div>
       <div className="sq-map-tools">
+        <span className="sq-north-indicator" aria-label="North is up">
+          N<i>↑</i>
+        </span>
         <IconButton
           icon="location"
           label="Recenter map"
@@ -96,6 +117,39 @@ export function MapHome({
       </div>
       <div className="sq-walk-card">
         <div className="sq-handle" />
+        {state.mode === "guided" && (
+          <div className="sq-demo-rail">
+            <div>
+              <span>
+                INTERACTIVE DEMO <b>{String(step).padStart(2, "0")} / 05</b>
+              </span>
+              <div className="sq-demo-controls">
+                <button
+                  aria-label="Replay animated demo"
+                  onClick={() => dispatch({ type: "restart-demo" })}
+                >
+                  <Icon name="replay" />
+                  Replay
+                </button>
+                <button
+                  aria-label="Explore freely"
+                  onClick={() => dispatch({ type: "explore" })}
+                >
+                  Explore <Icon name="arrow" />
+                </button>
+              </div>
+            </div>
+            <div
+              className="sq-demo-dots"
+              aria-label={`Walkthrough step ${step} of 5`}
+            >
+              {[1, 2, 3, 4, 5].map((n) => (
+                <i key={n} className={n <= step ? "reached" : ""} />
+              ))}
+            </div>
+            <p>{walkthroughHints[step - 1]}</p>
+          </div>
+        )}
         <div className="sq-between">
           <span className="sq-kicker">
             {state.mode === "guided" && j.phase !== "idle"
@@ -186,22 +240,38 @@ export function MapHome({
               </button>
               <button
                 onClick={() =>
-                  dispatch({ type: "overlay", overlay: { kind: "route" } })
+                  state.mode === "guided"
+                    ? dispatch({ type: "arrive" })
+                    : dispatch({ type: "overlay", overlay: { kind: "route" } })
                 }
               >
-                Route details <Icon name="arrow" />
+                {state.mode === "guided" ? "Preview arrival" : "Route details"}{" "}
+                <Icon name="arrow" />
               </button>
             </div>
           </>
         ) : (
           <div className="sq-card-actions">
-            <button onClick={() => dispatch({ type: "end" })}>End walk</button>
+            {state.mode !== "guided" && (
+              <button onClick={() => dispatch({ type: "end" })}>
+                End walk
+              </button>
+            )}
             <button
               className="sq-find"
-              onClick={() => dispatch({ type: "suggest" })}
+              onClick={() =>
+                dispatch({
+                  type:
+                    state.mode === "guided" && j.phase === "navigating"
+                      ? "demo-notification"
+                      : "suggest",
+                })
+              }
             >
               <Icon name="spark" />
-              Find a little detour
+              {state.mode === "guided" && j.phase === "navigating"
+                ? "Show notification"
+                : "Find a little detour"}
             </button>
           </div>
         )}

@@ -8,6 +8,7 @@ import { DEMO_CITIES, type DemoCityKey } from '@/data/demoCities';
 import { buildPastQuests } from '@/data/pastQuests';
 import { getCurrentPosition, requestForegroundLocation } from '@/services/location/permissions';
 import { storage } from '@/services/persistence/storage';
+import { importPreview } from '@/services/persistence/importPreview';
 import { forceStatus } from '@/services/sidequest/lifecycle';
 import { setFeedbackEnabled } from '@/services/sound';
 import { createId } from '@/utils/id';
@@ -52,6 +53,8 @@ export interface DrawSession {
 export interface UserLocation {
   coords: Coordinates;
   cityLabel: string;
+  /** ISO country code, for the flag beside the city */
+  country?: string;
   isDemo: boolean;
   demoCity?: DemoCityKey;
 }
@@ -86,12 +89,14 @@ interface SidequestState {
   rerollActivity: () => boolean;
   toggleLockPlace: () => void;
   canReroll: (stage: 'place' | 'activity') => boolean;
-  go: () => Promise<DrawnSidequest | null>;
+  /** accept the drawn sidequest. `keepDraw` leaves the receipt up, so a screen can leave first and clear it after */
+  go: (opts?: { keepDraw?: boolean }) => Promise<DrawnSidequest | null>;
   saveForLater: () => Promise<DrawnSidequest | null>;
   discardDraw: () => void;
 
   activeQuests: () => DrawnSidequest[];
   completeQuest: (id: string) => Promise<QuestFolder | null>;
+  acceptNavigationQuest: (quest: DrawnSidequest) => Promise<DrawnSidequest>;
   abandonQuest: (id: string) => Promise<void>;
   startSavedQuest: (id: string) => Promise<void>;
 
@@ -112,6 +117,7 @@ const DEMO = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
 const defaultLocation = (key: DemoCityKey = 'ann_arbor'): UserLocation => ({
   coords: DEMO_CITIES[key].center,
   cityLabel: DEMO_CITIES[key].label,
+  country: DEMO_CITIES[key].country,
   isDemo: true,
   demoCity: key,
 });
@@ -168,16 +174,26 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     draw: null,
 
     hydrate: async () => {
-      const [prefs, stored, storedFolders, badges, drawCount, seeded] = await Promise.all([
+      const [prefs, stored, storedFolders, badges, drawCount, seeded, previewImported] = await Promise.all([
         storage.getJson<V2Preferences>('v2Preferences'),
         storage.getJson<DrawnSidequest[]>('v2Quests'),
         storage.getJson<QuestFolder[]>('v2Folders'),
         storage.getJson<EarnedBadge[]>('v2Badges'),
         storage.getJson<number>('v2DrawCount'),
         storage.getJson<boolean>('v2Seeded'),
+        storage.getJson<boolean>('previewImported'),
       ]);
       let quests = stored ?? [];
       let folders = storedFolders ?? [];
+      let importedPreview = false;
+      if (Platform.OS === 'web' && !previewImported) {
+        try {
+          const imported = importPreview(window.localStorage.getItem('sidequest:app:v3'));
+          quests = [...quests, ...imported.quests.filter(q => !quests.some(existing => existing.id === q.id))];
+          folders = [...folders, ...imported.folders.filter(f => !folders.some(existing => existing.id === f.id))];
+          importedPreview = true;
+        } catch { /* Storage may be unavailable in a private browser. */ }
+      }
       let earned = badges ?? [];
       const seedNow = DEMO && !seeded;
       // Demo installs start with a library of past sidequests, once
@@ -202,7 +218,8 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
         badges: earned,
         drawCount: drawCount ?? 0,
       });
-      if (seedNow) await persist();
+      if (seedNow || importedPreview) await persist();
+      if (importedPreview) await storage.setJson('previewImported', true);
       if (merged.onboarded) void get().refreshLocation();
     },
 
@@ -227,13 +244,15 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       if (pos) {
         const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         let cityLabel = 'Nearby';
+        let country: string | undefined;
         try {
           const [geo] = await Location.reverseGeocodeAsync(coords);
           cityLabel = geo?.city ?? geo?.subregion ?? geo?.region ?? cityLabel;
+          country = geo?.isoCountryCode ?? undefined;
         } catch {
           /* offline: keep the generic label */
         }
-        next = { coords, cityLabel, isDemo: false };
+        next = { coords, cityLabel, country, isDemo: false };
       }
       const { prefs } = get();
       const moved = prefs.onboarded && prefs.confirmedCity && prefs.confirmedCity !== next.cityLabel;
@@ -350,11 +369,11 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       if (d) patchDraw({ placeLocked: !d.placeLocked });
     },
 
-    go: async () => {
+    go: async ({ keepDraw = false } = {}) => {
       const quest = buildFromDraw(get());
       if (!quest) return null;
       const accepted = forceStatus(quest, 'accepted') as DrawnSidequest;
-      set({ quests: [accepted, ...get().quests], draw: null });
+      set({ quests: [accepted, ...get().quests], ...(keepDraw ? {} : { draw: null }) });
       await persist();
       return accepted;
     },
@@ -377,6 +396,15 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     startSavedQuest: async (id) => {
       set({ quests: get().quests.map((q) => (q.id === id ? (forceStatus(q, 'accepted') as DrawnSidequest) : q)) });
       await persist();
+    },
+
+    acceptNavigationQuest: async (quest) => {
+      const existing = get().quests.find(q => q.id === quest.id);
+      if (existing) return existing;
+      const accepted = forceStatus(quest, 'accepted') as DrawnSidequest;
+      set({ quests: [accepted, ...get().quests] });
+      await persist();
+      return accepted;
     },
 
     completeQuest: async (id) => {

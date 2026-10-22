@@ -345,7 +345,7 @@ export function Preferences({
       <div className="sq-preference-group">
         <button
           className="sq-settings-link"
-          onClick={() => dispatch({ type: "guided" })}
+            onClick={() => dispatch({ type: "restart-demo" })}
         >
           <Icon name="replay" />
           <span>Replay the guided walk</span>

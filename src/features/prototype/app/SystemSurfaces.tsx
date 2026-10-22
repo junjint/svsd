@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import { Icon } from "../Icons";
 import { logo } from "./assets";
-import { questById } from "./data";
+import { destinationById, questById } from "./data";
 import type { AppAction, AppState } from "./model";
 import { IconButton } from "./ui";
 
@@ -90,12 +90,17 @@ export function DynamicIsland({
     start = useRef({ x: 0, y: 0 });
   const active = questById(state.journey.activeQuestId),
     done = !!state.activityDone,
+    walking = !active && !state.activityDone && state.journey.phase !== "idle",
     expanded = state.overlay?.kind === "activity";
   useEffect(() => {
-    if (expanded)
-      activity.current
-        ?.querySelector<HTMLButtonElement>("button")
-        ?.focus({ preventScroll: true });
+    if (!expanded) return;
+    const previous = document.activeElement as HTMLElement | null;
+    activity.current
+      ?.querySelector<HTMLButtonElement>("button")
+      ?.focus({ preventScroll: true });
+    return () => {
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
   }, [expanded]);
   const cancelTimer = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -110,6 +115,10 @@ export function DynamicIsland({
   const open = () => {
     if (!active) {
       if (done) dispatch({ type: "screen", screen: "memories" });
+      else if (walking) {
+        dispatch({ type: "screen", screen: "map" });
+        dispatch({ type: "overlay", overlay: { kind: "route" } });
+      }
       return;
     }
     dispatch({ type: "screen", screen: "map" });
@@ -125,7 +134,7 @@ export function DynamicIsland({
     if (active) {
       held.current = true;
       dispatch({ type: "overlay", overlay: { kind: "activity" } });
-    }
+    } else if (walking) open();
   };
   return (
     <>
@@ -137,13 +146,13 @@ export function DynamicIsland({
         />
       )}
       <div
-        className={`dynamic-island sq-island ${active || done ? "has-activity" : ""} ${expanded ? "expanded" : ""}`}
+        className={`dynamic-island sq-island ${active || done || walking ? "has-activity" : ""} ${walking ? "maps-activity" : ""} ${expanded ? "expanded" : ""}`}
       >
         <div className="island-hardware" aria-hidden="true">
           <span className="island-speaker" />
           <span className="island-lens" />
         </div>
-        {(active || done) && (
+        {(active || done || walking) && (
           <button
             className="sq-island-compact"
             tabIndex={expanded ? -1 : 0}
@@ -151,7 +160,9 @@ export function DynamicIsland({
             aria-label={
               done
                 ? "Sidequest complete"
-                : "Active Sidequest. Tap to open, hold to expand."
+                : walking
+                  ? "Maps walking activity. Tap for route details."
+                  : "Active Sidequest. Tap to open, hold to expand."
             }
             title="Tap to open · Hold or right-click to expand"
             onPointerDown={(e) => {
@@ -188,14 +199,22 @@ export function DynamicIsland({
             }}
           >
             <span className="sq-island-mark">
-              {done ? <Icon name="check" /> : <img src={logo} alt="" />}
+              {done ? (
+                <Icon name="check" />
+              ) : walking ? (
+                <Icon name="walk" />
+              ) : (
+                <img src={logo} alt="" />
+              )}
             </span>
             <span className="sq-island-value">
               {done
                 ? "✓"
-                : state.journey.phase === "arrived"
-                  ? "here"
-                  : `${Math.max(1, Math.ceil((1 - state.journey.progress) * active!.detourMinutes))}m`}
+                : walking
+                  ? "walk"
+                  : state.journey.phase === "arrived"
+                    ? "here"
+                    : `${Math.max(1, Math.ceil((1 - state.journey.progress) * active!.detourMinutes))}m`}
             </span>
           </button>
         )}
@@ -204,7 +223,27 @@ export function DynamicIsland({
             ref={activity}
             className="sq-island-detail"
             role="dialog"
+            aria-modal="true"
             aria-label="Active Sidequest Live Activity"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                dispatch({ type: "close" });
+              }
+              if (e.key !== "Tab") return;
+              const buttons =
+                activity.current?.querySelectorAll<HTMLButtonElement>("button");
+              if (!buttons?.length) return;
+              const first = buttons[0],
+                last = buttons[buttons.length - 1];
+              if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+              } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+              }
+            }}
           >
             <div className="sq-between">
               <img src={logo} alt="Sidequest" />
@@ -222,23 +261,42 @@ export function DynamicIsland({
                   : "A LITTLE DETOUR"}
             </p>
             <h2>{active.name}</h2>
+            <div className="sq-live-metrics">
+              <strong>
+                {state.journey.phase === "arrived"
+                  ? "✓"
+                  : Math.max(
+                      1,
+                      Math.ceil(
+                        (1 - state.journey.progress) * active.detourMinutes,
+                      ),
+                    )}
+                <small>
+                  {state.journey.phase === "arrived" ? "here" : "min"}
+                </small>
+              </strong>
+              <span>
+                Sidequest Live Activity<small>Your detour, at a glance</small>
+              </span>
+            </div>
             <div className="sq-activity-track">
               <span style={{ width: `${state.journey.progress * 100}%` }} />
             </div>
             <div className="sq-between">
               <small>
-                {Math.round(state.journey.progress * 100)}% of your demo walk
+                Then back to {destinationById(state.journey.destinationId).name}
               </small>
               <Icon name="walk" />
             </div>
             <div className="sq-island-actions">
-              <button onClick={open}>
-                Open Sidequest <Icon name="arrow" />
+              <button onClick={() => dispatch({ type: "close" })}>
+                Continue walking <Icon name="arrow" />
               </button>
-              <button onClick={() => dispatch({ type: "cancel-detour" })}>
-                End detour
-              </button>
+              <button onClick={open}>View discovery</button>
             </div>
+            <p className="sq-live-disclaimer">
+              Simulated iOS surface · tap or hold the island to reopen
+            </p>
           </div>
         )}
       </div>

@@ -42,6 +42,26 @@ export async function pickPhotos(): Promise<{ photos: PickedPhoto[]; dropped: nu
   return { photos, dropped };
 }
 
+/** One square photo for the profile, cleaned and kept the same way */
+export async function pickAvatar(): Promise<string | null | 'denied'> {
+  if (Platform.OS !== 'web') {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted && perm.accessPrivileges !== 'limited') return 'denied';
+  }
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.86,
+    exif: false,
+    preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+  });
+  const asset = res.canceled ? undefined : res.assets[0];
+  if (!asset) return null;
+  const clean = await stripLocation(asset.uri);
+  return clean ? keep(clean.uri) : null;
+}
+
 /** Decode → re-encode as JPEG: the result carries pixels and nothing else */
 async function stripLocation(uri: string): Promise<{ uri: string; width: number; height: number } | null> {
   try {

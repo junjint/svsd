@@ -1,4 +1,6 @@
-# Selective teammate integration
+# Historical selective teammate integration
+
+Superseded October 22: the active app now restores Rebecca’s actual baseline in full. The selective decisions below describe the earlier map-first prototype, not the current implementation. See [Rebecca baseline + walking integration](REBECCA-BASELINE.md).
 
 Reviewed incoming `origin/master` commit **8516b8893c5f07379b4ebeeb1d715658cba62c5c**, Rebecca Sun, October 21, 2026: “Library/+/Profile tabs, hold-to-finish flow, brushed-metal printer, Plus Jakarta Sans.” It is the only fetched commit beyond our `eefac89` base; no separate remote teammate branches exist. The author, changed files and direct source inspection identify it as the relevant contribution, not merely its recency. The commit changes 51 files (+1502/−624).
 

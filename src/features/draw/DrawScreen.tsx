@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ConfettiBurst } from '@/features/reveal';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Close } from '@/features/folders/icons';
-import { GlassIconButton, Paper, PillButton, Text, space } from '@/theme';
-import { Sheet, showToast, useScreen, useTabBarSpace } from '@/ui';
+import { Decor, GlassIconButton, Paper, PillButton, Text, space } from '@/theme';
+import { Sheet, showToast, takeNewSidequest, useScreen, useTabBarSpace } from '@/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BadgeCarousel } from './home/BadgeCarousel';
 import { CityLine } from './home/CityLine';
 import { EmptyState } from './home/EmptyState';
 import { Header } from './home/Header';
@@ -18,6 +19,8 @@ import { RadiusSheet } from './home/locationSeam';
 import { PrinterStage, type PrinterStageHandle } from './printer/PrinterStage';
 import { ReceiptActions } from './printer/ReceiptActions';
 
+/** the New sidequest pill's height, so the badges stop short of it */
+const CTA_H = 52;
 const PRINTED_PHASES = new Set(['shuffling', 'place', 'activity', 'result']);
 /* one celebration per draw, even if a reprint lands on it again */
 const celebrated = new Set<string>();
@@ -38,7 +41,6 @@ export function DrawScreen() {
   const rerollActivity = useSidequestStore((s) => s.rerollActivity);
   const alwaysSkip = useSidequestStore((s) => s.prefs.alwaysSkipReveals);
   const printer = useRef<PrinterStageHandle>(null);
-  const scroll = useRef<ScrollViewInstance>(null);
   const busy = useRef(false);
   const [printing, setPrinting] = useState(false);
   const [printed, setPrinted] = useState(false);
@@ -53,9 +55,29 @@ export function DrawScreen() {
   const navigation = useNavigation();
 
   const printerW = Math.round(Math.min(width - 56, 320));
+  // idle, the printer sits under the arch's curve, inside its legs
+  const archW = width - space.md * 2;
+  const archTop = Math.round(((archW * 542) / 900) * 0.42);
+
   const phase = draw?.phase;
   const onPaper = !!draw && PRINTED_PHASES.has(draw.phase);
   const empty = phase === 'empty' && !printing;
+  // once the idle note has torn away, the arch fades and the printer rises into its place
+  const still = useReducedMotion();
+  const raised = useSharedValue(0);
+  const up = onPaper || (printing && !idleOut);
+  useEffect(() => {
+    raised.value = still ? (up ? 1 : 0) : withTiming(up ? 1 : 0, { duration: 520, easing: Easing.bezier(0.22, 1, 0.36, 1) });
+  }, [up, still, raised]);
+  const liftStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -(archTop - space.sm) * raised.value }] }));
+  const ctaShown = !onPaper && !printing && !setupOpen;
+  const cta = useSharedValue(1);
+  useEffect(() => {
+    cta.value = withTiming(ctaShown ? 1 : 0, { duration: ctaShown ? 220 : 140 });
+  }, [ctaShown, cta]);
+  const ctaStyle = useAnimatedStyle(() => ({ opacity: cta.value }));
+  const fadeWithArch = useAnimatedStyle(() => ({ opacity: 1 - raised.value }));
+  const archStyle = useAnimatedStyle(() => ({ opacity: 1 - raised.value, transform: [{ translateY: -12 * raised.value }] }));
 
   const print = useCallback(async () => {
     if (busy.current) return;
@@ -107,7 +129,6 @@ export function DrawScreen() {
       setPrinted(false);
       setPrinting(true);
       setPhase('result');
-      scroll.current?.scrollTo({ y: 0, animated: true });
     } finally {
       busy.current = false;
     }
@@ -121,7 +142,6 @@ export function DrawScreen() {
       discardDraw();
       setPrinted(false);
       setIdleOut(true);
-      scroll.current?.scrollTo({ y: 0, animated: true });
     } finally {
       busy.current = false;
     }
@@ -142,21 +162,39 @@ export function DrawScreen() {
   }, [navigation, onPaper]);
   useEffect(() => () => navigation.setOptions({ tabBarStyle: undefined }), [navigation]);
 
+  // every new sidequest starts with no type picked (= Random); the user narrows it if they want
+  useEffect(() => {
+    if (setupOpen && useSidequestStore.getState().prefs.questType !== 'random') void useSidequestStore.getState().updatePrefs({ questType: 'random' });
+  }, [setupOpen]);
+
+  // the tab bar's + means "new sidequest": it lands here with the settings sheet open
+  const canStart = useRef(false);
+  canStart.current = !onPaper && !printing && !empty;
+  useEffect(() => {
+    if (takeNewSidequest() && canStart.current) setSetupOpen(true);
+    const on = navigation.addListener as unknown as (e: 'tabPress', cb: () => void) => () => void;
+    return on('tabPress', () => {
+      if (takeNewSidequest() && canStart.current) setSetupOpen(true);
+    });
+  }, [navigation]);
+
   return (
     <View style={styles.root}>
       <Paper>
-        <ScrollView
-          ref={scroll}
-          scrollEnabled={onPaper && !printing}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.content, { paddingBottom: onPaper ? bottomInset + space.xl : tabSpace }]}
-        >
+        {/* one fixed page, never scrolled: the header and printer hold still,
+            the controls live in a dock at the bottom, so nothing above the
+            printer changes size when a print starts */}
+        <View style={styles.page}>
           <Header minimal={onPaper} />
           <CityLine onOpen={() => setRadiusOpen(true)} />
 
-          {/* the printer sits in the same spot whether idle or printing: it never moves */}
-          <View style={styles.printerArea}>
-            <View style={{ opacity: empty ? 0.25 : 1 }}>
+          <View style={[styles.printerArea, { paddingTop: archTop }]}>
+            {/* chrome framing: a wire arch stands over the idle printer like a doorway */}
+            <Animated.View style={[styles.arch, archStyle]} pointerEvents="none">
+              <Decor name="archWire" width={archW} />
+            </Animated.View>
+            {/* while printing, the printer glides up into the arch's place to make room for the paper */}
+            <Animated.View style={[{ opacity: empty ? 0.25 : 1 }, liftStyle]}>
               <PrinterStage
                 ref={printer}
                 width={printerW}
@@ -169,14 +207,7 @@ export function DrawScreen() {
                 onPress={() => setSetupOpen(true)}
                 onPrinted={onPrinted}
               />
-            </View>
-            {printing && !onPaper && (
-              <Animated.View entering={FadeIn} exiting={FadeOut.duration(120)}>
-                <Text variant="caption" style={styles.hint}>
-                  Printing…
-                </Text>
-              </Animated.View>
-            )}
+            </Animated.View>
             {empty && (
               <View style={styles.emptyWrap}>
                 <EmptyState onRetry={() => void print()} />
@@ -184,17 +215,32 @@ export function DrawScreen() {
             )}
           </View>
 
+          {/* earned badges drift past in the room above the button; they fade with the arch */}
+          <Animated.View style={[styles.badges, { marginBottom: tabSpace + space.lg + CTA_H }, fadeWithArch]} pointerEvents="none">
+            {!empty && <BadgeCarousel />}
+          </Animated.View>
+        </View>
+
+        <View style={[styles.dock, { bottom: onPaper ? bottomInset + space.lg : tabSpace + space.lg }]} pointerEvents="box-none">
+          {printing && !onPaper && (
+            <Animated.View entering={FadeIn} exiting={FadeOut.duration(120)} style={styles.hintWrap} pointerEvents="none">
+              <Text variant="caption" style={styles.hint}>
+                Printing…
+              </Text>
+            </Animated.View>
+          )}
           {onPaper && draw && printed && (
             <ReceiptActions draw={draw} width={Math.min(width - 40, 360)} onReprint={(s) => void reprint(s)} />
           )}
-
-          {!onPaper && <View style={{ flex: 1 }} />}
+          {/* stays mounted and in place: it only fades (an exit animation lifted it out of
+              the row, so it shrank to the left as it went). Hidden under the sheet, or it
+              ghosts through the sheet's glass */}
           {!onPaper && (
-            <Animated.View entering={FadeIn} exiting={FadeOut.duration(120)} style={styles.controls}>
-              <PillButton label="New sidequest" disabled={printing || empty} onPress={() => setSetupOpen(true)} style={styles.cta} sound={null} />
+            <Animated.View style={[styles.ctaWrap, ctaStyle]} pointerEvents={ctaShown ? 'auto' : 'none'}>
+              <PillButton label="New sidequest" disabled={empty} onPress={() => setSetupOpen(true)} style={styles.cta} sound={null} />
             </Animated.View>
           )}
-        </ScrollView>
+        </View>
       </Paper>
 
       {/* while a receipt is out, a way back that doesn't depend on scrolling */}
@@ -222,11 +268,15 @@ export function DrawScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   close: { position: 'absolute', right: space.lg, zIndex: 10 },
-  content: { flexGrow: 1 },
-  printerArea: { alignItems: 'center', paddingTop: space.xxl },
-  hint: { textAlign: 'center', marginTop: space.md },
+  page: { flex: 1, overflow: 'hidden' },
+  badges: { flex: 1, justifyContent: 'center' },
+  dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: space.md },
+  hintWrap: { position: 'absolute', bottom: '100%', left: 0, right: 0 },
+  printerArea: { alignItems: 'center' },
+  arch: { position: 'absolute', top: space.xs, alignSelf: 'center' },
+  hint: { textAlign: 'center', marginBottom: space.md },
   emptyWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  controls: { gap: space.md, paddingBottom: space.lg },
+  ctaWrap: { alignSelf: 'stretch' },
   cta: { marginHorizontal: space.xl },
   sheetChips: { marginHorizontal: -20 },
 });
