@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { EBGaramond_400Regular, EBGaramond_400Regular_Italic } from '@expo-google-fonts/eb-garamond';
@@ -13,7 +13,7 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 import { color } from './tokens';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     EBGaramond_400Regular,
     EBGaramond_400Regular_Italic,
     PlusJakartaSans_400Regular,
@@ -24,7 +24,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     SpaceMono_400Regular,
     SpaceMono_700Bold,
   });
-  if (!loaded) {
+  // never wait forever: on a slow phone a font can time out (expo-font then reports an
+  // error and never "loaded"), so go on with system fonts after a moment
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+  if (!loaded && !error && !waited) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.paper }}>
         <ActivityIndicator color={color.cobalt} />

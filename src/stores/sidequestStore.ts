@@ -193,57 +193,62 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
     draw: null,
 
     hydrate: async () => {
-      const [prefs, stored, storedFolders, badges, drawCount, seeded, storedSuggestions, previewImported] = await Promise.all([
-        storage.getJson<V2Preferences>('v2Preferences'),
-        storage.getJson<DrawnSidequest[]>('v2Quests'),
-        storage.getJson<QuestFolder[]>('v2Folders'),
-        storage.getJson<EarnedBadge[]>('v2Badges'),
-        storage.getJson<number>('v2DrawCount'),
-        storage.getJson<boolean>('v2Seeded'),
-        storage.getJson<Suggestion[]>('v2Suggestions'),
-        storage.getJson<boolean>('previewImported'),
-      ]);
-      const suggestions = storedSuggestions ?? [];
-      placeService.setUserPlaces(userPlaces(suggestions));
-      let quests = stored ?? [];
-      let folders = storedFolders ?? [];
-      let importedPreview = false;
-      if (Platform.OS === 'web' && !previewImported) {
-        try {
-          const imported = importPreview(window.localStorage.getItem('sidequest:app:v3'));
-          quests = [...quests, ...imported.quests.filter(q => !quests.some(existing => existing.id === q.id))];
-          folders = [...folders, ...imported.folders.filter(f => !folders.some(existing => existing.id === f.id))];
-          importedPreview = true;
-        } catch { /* Storage may be unavailable in a private browser. */ }
+      try {
+        const [prefs, stored, storedFolders, badges, drawCount, seeded, storedSuggestions, previewImported] = await Promise.all([
+          storage.getJson<V2Preferences>('v2Preferences'),
+          storage.getJson<DrawnSidequest[]>('v2Quests'),
+          storage.getJson<QuestFolder[]>('v2Folders'),
+          storage.getJson<EarnedBadge[]>('v2Badges'),
+          storage.getJson<number>('v2DrawCount'),
+          storage.getJson<boolean>('v2Seeded'),
+          storage.getJson<Suggestion[]>('v2Suggestions'),
+          storage.getJson<boolean>('previewImported'),
+        ]);
+        const suggestions = storedSuggestions ?? [];
+        placeService.setUserPlaces(userPlaces(suggestions));
+        let quests = stored ?? [];
+        let folders = storedFolders ?? [];
+        let importedPreview = false;
+        if (Platform.OS === 'web' && !previewImported) {
+          try {
+            const imported = importPreview(window.localStorage.getItem('sidequest:app:v3'));
+            quests = [...quests, ...imported.quests.filter(q => !quests.some(existing => existing.id === q.id))];
+            folders = [...folders, ...imported.folders.filter(f => !folders.some(existing => existing.id === f.id))];
+            importedPreview = true;
+          } catch { /* Storage may be unavailable in a private browser. */ }
+        }
+        let earned = badges ?? [];
+        const seedNow = DEMO && !seeded;
+        // Demo installs start with a library of past sidequests, once
+        if (seedNow) {
+          const past = buildPastQuests();
+          const have = new Set(quests.map((q) => q.id));
+          quests = [...quests, ...past.quests.filter((q) => !have.has(q.id))];
+          folders = [...folders, ...past.folders.filter((f) => !folders.some((x) => x.id === f.id))];
+          // their badges count too, quietly: no celebration for the past
+          const done = quests.filter((q) => q.status === 'completed');
+          const at = new Date().toISOString();
+          earned = [...earned, ...newlyEarned({ completed: done, suggestions }, earned.map((b) => b.id)).map((id) => ({ id, earnedAt: at }))];
+          void storage.setJson('v2Seeded', true);
+        }
+        const merged = { ...DEFAULT_V2_PREFERENCES, ...(prefs ?? {}) };
+        setFeedbackEnabled({ sounds: merged.soundsEnabled, haptics: merged.hapticsEnabled });
+        set({
+          hydrated: true,
+          prefs: merged,
+          quests,
+          folders,
+          badges: earned,
+          suggestions,
+          drawCount: drawCount ?? 0,
+        });
+        if (seedNow || importedPreview) await persist();
+        if (importedPreview) await storage.setJson('previewImported', true);
+        if (merged.onboarded) void get().refreshLocation();
+      } catch {
+        // storage blocked or corrupt (some private mobile browsers): start fresh rather than hang
+        set({ hydrated: true });
       }
-      let earned = badges ?? [];
-      const seedNow = DEMO && !seeded;
-      // Demo installs start with a library of past sidequests, once
-      if (seedNow) {
-        const past = buildPastQuests();
-        const have = new Set(quests.map((q) => q.id));
-        quests = [...quests, ...past.quests.filter((q) => !have.has(q.id))];
-        folders = [...folders, ...past.folders.filter((f) => !folders.some((x) => x.id === f.id))];
-        // their badges count too, quietly: no celebration for the past
-        const done = quests.filter((q) => q.status === 'completed');
-        const at = new Date().toISOString();
-        earned = [...earned, ...newlyEarned({ completed: done, suggestions }, earned.map((b) => b.id)).map((id) => ({ id, earnedAt: at }))];
-        void storage.setJson('v2Seeded', true);
-      }
-      const merged = { ...DEFAULT_V2_PREFERENCES, ...(prefs ?? {}) };
-      setFeedbackEnabled({ sounds: merged.soundsEnabled, haptics: merged.hapticsEnabled });
-      set({
-        hydrated: true,
-        prefs: merged,
-        quests,
-        folders,
-        badges: earned,
-        suggestions,
-        drawCount: drawCount ?? 0,
-      });
-      if (seedNow || importedPreview) await persist();
-      if (importedPreview) await storage.setJson('previewImported', true);
-      if (merged.onboarded) void get().refreshLocation();
     },
 
     updatePrefs: async (patch) => {
