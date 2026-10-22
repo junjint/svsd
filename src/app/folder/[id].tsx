@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { ConfirmSheet } from '@/features/folders/ConfirmSheet';
 import { partyLabel, shortDate } from '@/features/folders/format';
 import { Chevron, Dots, Plus } from '@/features/folders/icons';
@@ -11,12 +11,17 @@ import { Photo } from '@/features/folders/Photo';
 import { FullBleed } from '@/features/folders/viewer/FullBleed';
 import { NoteSheet, moodLabel } from '@/features/folders/viewer/NoteSheet';
 import { OptionsSheet } from '@/features/folders/viewer/OptionsSheet';
-import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
-import { formatMiles } from '@/services/draw/rules';
+import { HoldToComplete } from '@/features/quest/HoldToComplete';
+import { DirectionsButton } from '@/features/navigation/DirectionsButton';
+import { formatMiles, travelLabel } from '@/services/draw/rules';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { Decor, GlassIconButton, Paper, PillButton, Text, color, fonts, rarityColor, space } from '@/theme';
 import { showToast, useScreen } from '@/ui';
+
+/* Web swaps stack screens with a hard cut, so the page brings its own
+   entrance: it rises and fades in. iOS keeps its native slide */
+const PAGE_IN = Platform.OS === 'web' ? FadeInDown.duration(420).easing(Easing.bezier(0.22, 1, 0.36, 1)) : undefined;
 
 /** iOS can't present a modal while another is dismissing */
 const AFTER_SHEET = 380;
@@ -33,7 +38,7 @@ export default function SidequestPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const folder = useSidequestStore((s) => s.folders.find((f) => f.id === id));
   const quest = useSidequestStore((s) => (folder?.sidequestId ? s.quests.find((q) => q.id === folder.sidequestId) : undefined));
-  const { addPhotos, updateFolder, removeSidequest } = useSidequestStore.getState();
+  const { addPhotos, updateFolder, removeSidequest, completeQuest } = useSidequestStore.getState();
   const { width, height } = useScreen();
   const insets = useSafeAreaInsets();
   const still = useReducedMotion();
@@ -41,6 +46,7 @@ export default function SidequestPage() {
   const [sheet, setSheet] = useState<'note' | 'options' | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [finishedHere, setFinishedHere] = useState(false);
 
   const W = Math.min(width, 430);
   const heroH = Math.round(Math.min(height * 0.5, W * 1.05));
@@ -51,7 +57,7 @@ export default function SidequestPage() {
       <Paper edges={['top', 'bottom']}>
         <View style={styles.missing}>
           <Text variant="title">This folder is gone</Text>
-          <PillButton label="Back to Folders" sound={null} onPress={() => router.replace('/folders')} />
+          <PillButton label="Back to Library" sound={null} onPress={() => router.replace('/folders')} />
         </View>
       </Paper>
     );
@@ -101,7 +107,7 @@ export default function SidequestPage() {
   };
 
   return (
-    <View style={styles.page}>
+    <Animated.View style={styles.page} entering={PAGE_IN}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
         {/* the picture of the sidequest */}
         <Pressable
@@ -155,6 +161,15 @@ export default function SidequestPage() {
               </Animated.View>
             ) : null}
 
+            {quest ? (
+              <Animated.View entering={enter(3)}>
+                <DirectionsButton
+                  target={{ sidequestId: quest.id, placeName: quest.placeName, coordinates: quest.coordinates }}
+                  detail={quest.distanceMeters ? travelLabel(quest.distanceMeters) : undefined}
+                />
+              </Animated.View>
+            ) : null}
+
             <Animated.View entering={enter(4)} style={folder.note || mood ? styles.noteBox : undefined}>
               {folder.note ? <Text style={styles.note}>“{folder.note}”</Text> : null}
               {mood ? <Text variant="caption" style={{ color: color.ink2 }}>Felt {mood.toLowerCase()}</Text> : null}
@@ -203,10 +218,24 @@ export default function SidequestPage() {
               </Pressable>
             </View>
 
-            <PillButton label={adding ? 'Adding…' : 'Add more photos'} sound={null} disabled={adding} onPress={() => void add()} style={{ marginTop: space.lg }} />
-            <Pressable accessibilityRole="button" onPress={() => setConfirm(true)} hitSlop={8} style={styles.delete}>
-              <Text style={styles.deleteText}>{quest ? 'Delete this sidequest' : 'Delete this folder'}</Text>
-            </Pressable>
+            {/* finishing is a hold, never a tap; deleting lives in the ⋯ menu */}
+            {/* the button stays to show its "complete" state when it was finished right here */}
+            {quest && (quest.status !== 'completed' || finishedHere) ? (
+              <View style={{ marginTop: space.lg }}>
+                <HoldToComplete
+                  onComplete={() => {
+                    setFinishedHere(true);
+                    void completeQuest(quest.id);
+                    // a beat on "Sidequest complete", then back out to the Library to watch it land in its folder
+                    setTimeout(() => router.navigate({ pathname: '/folders', params: { just: folder.id } }), 1100);
+                  }}
+                />
+              </View>
+            ) : quest?.completedAt ? (
+              <Text variant="label" style={styles.doneLine}>
+                Completed {shortDate(quest.completedAt)}
+              </Text>
+            ) : null}
             <View style={styles.fin}>
               <Decor name="swallow" width={56} />
               <Text style={styles.finText}>fin.</Text>
@@ -237,6 +266,7 @@ export default function SidequestPage() {
           showToast(v ? 'Saved to Gallery' : 'Removed from Gallery');
         }}
         onOpenQuest={undefined}
+        deleteLabel={quest ? 'Delete sidequest' : 'Delete folder'}
         onDeletePhoto={() => setSheet(null)}
         onDeleteFolder={() => {
           setSheet(null);
@@ -248,7 +278,7 @@ export default function SidequestPage() {
         title={quest ? 'Delete this sidequest?' : 'Delete this folder?'}
         body={
           quest
-            ? `Not going after all? It leaves Folders${photos.length ? `, with its ${photos.length} photo${photos.length === 1 ? '' : 's'}` : ''}. Originals stay in your camera roll.`
+            ? `Not going after all? It leaves your Library${photos.length ? `, with its ${photos.length} photo${photos.length === 1 ? '' : 's'}` : ''}. Originals stay in your camera roll.`
             : photos.length
               ? `All ${photos.length} photo${photos.length === 1 ? '' : 's'} in it go too. Originals stay in your camera roll.`
               : 'It’s empty, so nothing else is lost.'
@@ -257,8 +287,7 @@ export default function SidequestPage() {
         onConfirm={() => void removeFolder()}
         onClose={() => setConfirm(false)}
       />
-      <BadgeCelebration />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -299,8 +328,7 @@ const styles = StyleSheet.create({
   ghost: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: color.ink },
   ghostText: { fontSize: 13, fontWeight: '600', color: color.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  delete: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
-  deleteText: { fontSize: 15, fontWeight: '600', color: color.signal },
+  doneLine: { textAlign: 'center', marginTop: space.lg },
   fin: { alignItems: 'center', gap: 2, marginTop: space.xxl, opacity: 0.9 },
   finText: { fontFamily: fonts.serifItalic, fontSize: 18, color: color.ink2 },
   addCell: { borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: color.ink3, alignItems: 'center', justifyContent: 'center', gap: 4 },

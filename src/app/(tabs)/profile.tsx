@@ -1,13 +1,19 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Gear } from '@/features/folders/icons';
 import { GalleryRow } from '@/features/profile/GalleryRow';
 import { ProfileHeader } from '@/features/profile/ProfileHeader';
+import { SidequestCalendar } from '@/features/profile/SidequestCalendar';
+import { useMostColorful } from '@/features/profile/colorfulness';
+import { pickAvatar } from '@/features/folders/pickPhotos';
 import { TrophyCase } from '@/features/profile/TrophyCase';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { GlassIconButton, Paper, Text, TornPaper, color, radius, space } from '@/theme';
-import { LiquidToggle, RollingCounter, showToast, useTabBarSpace } from '@/ui';
+import { Paper, Text, TornPaper, color, radius, space } from '@/theme';
+import type { QuestFolder } from '@/types';
+import { LiquidToggle, showToast, useTabBarSpace } from '@/ui';
+
+/** The demo's stand-in until someone picks their own (Unsplash, free licence) */
+const DEMO_AVATAR = 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop&crop=faces&q=80&auto=format';
 
 export default function ProfileScreen() {
   const tabSpace = useTabBarSpace();
@@ -20,34 +26,44 @@ export default function ProfileScreen() {
 
   const stats = useMemo(() => {
     const done = quests.filter((q) => q.status === 'completed');
-    return {
-      completed: done.length,
-      cities: new Set(done.map((q) => q.cityLabel)).size,
-      legendary: quests.filter((q) => q.rarity === 'legendary').length,
-    };
-  }, [quests]);
+    const cities = new Set(done.map((q) => q.cityLabel)).size;
+    return [
+      { value: done.length, label: 'Sidequests' },
+      { value: cities, label: cities === 1 ? 'City' : 'Cities' },
+      { value: folders.reduce((n, f) => n + f.photos.length, 0), label: 'Photos' },
+    ];
+  }, [quests, folders]);
   const gallery = useMemo(() => folders.filter((f) => f.savedToGallery), [folders]);
+  // the banner is the most colourful sidequest photo, blurred down to its colours
+  const photoUris = useMemo(() => folders.flatMap((f) => f.photos.map((p) => p.uri)).slice(0, 80), [folders]);
+  const banner = useMostColorful(photoUris);
+  const changeAvatar = async () => {
+    const uri = await pickAvatar();
+    if (uri === 'denied') showToast('Allow photo access in Settings to add one');
+    else if (uri) void updatePrefs({ avatarUri: uri });
+  };
   const isPublic = prefs.profileVisibility === 'public';
+  const openFolder = (f: QuestFolder) => router.push({ pathname: '/folder/[id]', params: { id: f.id } });
 
   return (
     <Paper>
       <ScrollView contentContainerStyle={{ paddingBottom: tabSpace, gap: space.xxl }} showsVerticalScrollIndicator={false}>
-        <View>
-          <View style={styles.top}>
-            <GlassIconButton label="Settings" onPress={() => router.push('/settings')} size={44}>
-              <Gear size={18} />
-            </GlassIconButton>
-          </View>
-          <ProfileHeader name={prefs.displayName} city={prefs.confirmedCity ?? cityLabel} onRename={(n) => void updatePrefs({ displayName: n || undefined })} />
-        </View>
+        <ProfileHeader
+          name={prefs.displayName}
+          city={prefs.confirmedCity ?? cityLabel}
+          banner={banner}
+          avatar={prefs.avatarUri ?? DEMO_AVATAR}
+          onAvatar={() => void changeAvatar()}
+          stats={stats}
+          onRename={(n) => void updatePrefs({ displayName: n || undefined })}
+          onSettings={() => router.push('/settings')}
+        />
 
-        <View style={styles.stats}>
-          <Stat value={stats.completed} label="Quests" />
-          <View style={styles.rule} />
-          <Stat value={stats.cities} label={stats.cities === 1 ? 'City' : 'Cities'} />
-          <View style={styles.rule} />
-          <Stat value={stats.legendary} label="Legendary" />
-        </View>
+        <SidequestCalendar folders={folders} onOpen={openFolder} />
+
+        <TrophyCase earned={badges} />
+
+        <GalleryRow folders={gallery} visibility={prefs.profileVisibility} onOpen={openFolder} />
 
         <TornPaper seed="profile-privacy" style={styles.cardWrap} contentStyle={styles.card}>
           <View style={{ flex: 1, gap: 2 }}>
@@ -65,10 +81,6 @@ export default function ProfileScreen() {
             }}
           />
         </TornPaper>
-
-        <TrophyCase earned={badges} />
-
-        <GalleryRow folders={gallery} visibility={prefs.profileVisibility} onOpen={(f) => router.push({ pathname: '/folder/[id]', params: { id: f.id } })} />
 
         <TornPaper seed="profile-suggest" style={[styles.cardWrap, { opacity: 0.55 }]} contentStyle={styles.card}>
         <View
@@ -92,19 +104,7 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 2 }} accessible accessibilityLabel={`${value} ${label}`}>
-      <RollingCounter value={value} size="lg" />
-      <Text variant="caption" style={{ color: color.ink2 }}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: space.lg, paddingTop: space.sm },
-  stats: { flexDirection: 'row', alignItems: 'center', marginHorizontal: space.xl },
-  rule: { width: StyleSheet.hairlineWidth, height: 36, backgroundColor: color.line },
   cardWrap: { marginHorizontal: space.xl },
   card: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, minHeight: 72 },
   soon: { paddingHorizontal: 10, height: 26, borderRadius: radius.pill, backgroundColor: color.line, justifyContent: 'center' },

@@ -1,21 +1,20 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
-import { FolderTile, NewFolderTile, type FolderTone } from '@/features/folders/FolderTile';
-import { NewFolderSheet } from '@/features/folders/NewFolderSheet';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import Animated, { FadeInDown, ZoomIn, useReducedMotion } from 'react-native-reanimated';
+import { FolderTile, type FolderTone } from '@/features/folders/FolderTile';
+import { BadgeCelebration } from '@/features/quest/BadgeCelebration';
 import { QuestStrip } from '@/features/folders/QuestStrip';
-import { Plus } from '@/features/folders/icons';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
-import { CountPill, Glass, GlassIconButton, Paper, PillButton, Text, color, fonts, space } from '@/theme';
+import { CountPill, Decor, Glass, Paper, PillButton, Text, color, fonts, space } from '@/theme';
 import type { DrawnSidequest, QuestFolder } from '@/types';
-import { showToast, useTabBarSpace, useScreen } from '@/ui';
+import { useTabBarSpace, useScreen } from '@/ui';
 
 const ACTIVE = new Set(['accepted', 'en_route', 'arrived']);
 const GAP = space.md;
 
-type Filter = 'all' | 'nature' | 'focus' | 'snack' | 'meal' | 'legendary' | 'mine';
+type Filter = 'all' | 'nature' | 'focus' | 'snack' | 'meal' | 'legendary';
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'nature', label: 'Nature' },
@@ -23,7 +22,6 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'snack', label: 'Snack' },
   { id: 'meal', label: 'Meal' },
   { id: 'legendary', label: 'Legendary' },
-  { id: 'mine', label: 'My own' },
 ];
 
 /** What colour a folder is: its quest's type, or lilac for a hand-made one */
@@ -44,9 +42,29 @@ export default function FoldersScreen() {
   const folders = useSidequestStore((s) => s.folders);
   const { width } = useScreen();
   const still = useReducedMotion();
-  const [making, setMaking] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
+
+  /* back from finishing a sidequest (?just=<folder>): its folder springs into
+     place at the top, fans its photos open, then tucks them in */
+  const { just } = useLocalSearchParams<{ just?: string }>();
+  const [landing, setLanding] = useState<string | null>(null);
+  useEffect(() => {
+    if (!just) return;
+    setLanding(just);
+    setFilter('all');
+    setOpenId(null);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    router.setParams({ just: '' }); // played once; a reload shouldn't replay it
+    const t = [
+      setTimeout(() => feedback('questCompleted'), 420),
+      setTimeout(() => setOpenId(just), 700),
+      setTimeout(() => setOpenId((o) => (o === just ? null : o)), 1700),
+      setTimeout(() => setLanding(null), 2200),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, [just]);
 
   const active = useMemo(() => quests.filter((q) => ACTIVE.has(q.status)), [quests]);
   const saved = useMemo(() => quests.filter((q) => q.status === 'saved'), [quests]);
@@ -60,7 +78,6 @@ export default function FoldersScreen() {
       folders.filter((f) => {
         if (filter === 'all') return true;
         const q = f.sidequestId ? byId.get(f.sidequestId) : undefined;
-        if (filter === 'mine') return !q;
         if (filter === 'legendary') return q?.rarity === 'legendary';
         return toneFor(f, q) === filter;
       }),
@@ -74,7 +91,6 @@ export default function FoldersScreen() {
           c.id === 'all' ||
           folders.some((f) => {
             const q = f.sidequestId ? byId.get(f.sidequestId) : undefined;
-            if (c.id === 'mine') return !q;
             if (c.id === 'legendary') return q?.rarity === 'legendary';
             return toneFor(f, q) === c.id;
           })
@@ -82,7 +98,15 @@ export default function FoldersScreen() {
     [folders, byId]
   );
 
-  const openQuest = (id: string) => router.push({ pathname: '/quest/[id]', params: { id } });
+  // an active sidequest always opens its own page; one started before folders
+  // came with Go gets its folder now. Only saved-for-later ones keep the quest screen
+  const openQuest = async (id: string) => {
+    const q = quests.find((x) => x.id === id);
+    let f = folders.find((x) => x.sidequestId === id);
+    if (!f && q && ACTIVE.has(q.status)) f = await useSidequestStore.getState().createFolder({ title: q.activityText, sidequestId: id });
+    if (f) router.push({ pathname: '/folder/[id]', params: { id: f.id } });
+    else router.push({ pathname: '/quest/[id]', params: { id } });
+  };
   const openFolder = (id: string) => {
     setOpenId(null);
     router.push({ pathname: '/folder/[id]', params: { id } });
@@ -91,6 +115,7 @@ export default function FoldersScreen() {
   return (
     <Paper>
       <ScrollView
+        ref={scroll}
         contentContainerStyle={{ paddingBottom: tabSpace }}
         showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => setOpenId(null)}
@@ -99,7 +124,7 @@ export default function FoldersScreen() {
           <View style={{ flex: 1, gap: space.sm }}>
             <View style={styles.titleRow}>
               <Text variant="display" style={styles.bigTitle} accessibilityRole="header">
-                Folders
+                Library
               </Text>
               {!empty && <Text variant="accent" style={styles.titleCount}>({folders.length})</Text>}
             </View>
@@ -112,15 +137,12 @@ export default function FoldersScreen() {
               </View>
             )}
           </View>
-          {!empty && (
-            <GlassIconButton label="New folder" onPress={() => setMaking(true)} size={44}>
-              <Plus size={16} tint={color.ink} />
-            </GlassIconButton>
-          )}
+          {/* chrome crest in the header's empty corner, for looks only */}
+          <Decor name="lion" width={64} style={styles.crest} />
         </View>
 
         {empty ? (
-          <EmptyFolders onMake={() => setMaking(true)} />
+          <EmptyFolders />
         ) : (
           <>
             {(active.length > 0 || saved.length > 0) && (
@@ -129,7 +151,7 @@ export default function FoldersScreen() {
                   <Text variant="headline">On the go</Text>
                   <CountPill count={active.length} />
                 </View>
-                <QuestStrip active={active} saved={saved} onOpen={(q) => openQuest(q.id)} />
+                <QuestStrip active={active} saved={saved} onOpen={(q) => void openQuest(q.id)} />
               </View>
             )}
 
@@ -164,9 +186,15 @@ export default function FoldersScreen() {
                 const q = f.sidequestId ? byId.get(f.sidequestId) : undefined;
                 return (
                   <Animated.View
-                    key={f.id}
+                    key={f.id === landing ? `${f.id}-landing` : f.id}
                     style={{ zIndex: openId === f.id ? 50 : 1 }}
-                    entering={still ? undefined : FadeInDown.delay(Math.min(i, 8) * 40).springify().damping(18).stiffness(180)}
+                    entering={
+                      still
+                        ? undefined
+                        : f.id === landing
+                          ? ZoomIn.delay(300).springify().damping(13).stiffness(170)
+                          : FadeInDown.delay(Math.min(i, 8) * 40).springify().damping(18).stiffness(180)
+                    }
                   >
                     <FolderTile
                       folder={f}
@@ -180,41 +208,32 @@ export default function FoldersScreen() {
                   </Animated.View>
                 );
               })}
-              {filter === 'all' || filter === 'mine' ? <NewFolderTile size={tile} onPress={() => setMaking(true)} /> : null}
             </View>
           </>
         )}
       </ScrollView>
-
-      <NewFolderSheet
-        visible={making}
-        onClose={() => setMaking(false)}
-        onCreated={(f) => {
-          setMaking(false);
-          showToast('Folder made');
-          openFolder(f.id);
-        }}
-      />
+      {/* a badge earned by the sidequest that just landed is celebrated here, once it has */}
+      <BadgeCelebration delayMs={2000} />
     </Paper>
   );
 }
 
-/** Nothing yet: point at the Draw tab, with a quiet way to make one by hand */
-function EmptyFolders({ onMake }: { onMake: () => void }) {
+/** Nothing yet: every folder is a sidequest, so point at the Draw */
+function EmptyFolders() {
   return (
     <View style={styles.empty}>
       <Text variant="title" style={{ textAlign: 'center' }}>Nothing in here yet</Text>
       <Text variant="body" style={{ textAlign: 'center', color: color.ink2, maxWidth: 280 }}>
-        Draw a sidequest, go do it, and its folder lands here, ready for photos.
+        Every sidequest you go on gets its own folder here, ready for photos.
       </Text>
       <PillButton label="Draw a sidequest" sound="tabSwitch" onPress={() => router.navigate('/draw')} style={{ alignSelf: 'stretch', marginTop: space.md }} />
-      <PillButton label="Make a folder myself" tone="frost" sound={null} onPress={onMake} style={{ alignSelf: 'stretch' }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: space.xl, paddingTop: space.md, paddingBottom: space.lg },
+  crest: { marginTop: -2, marginRight: -4, transform: [{ rotate: '6deg' }] },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
   bigTitle: { fontSize: 46, lineHeight: 46, letterSpacing: -2.2 },
   titleCount: { fontSize: 26, lineHeight: 28, marginTop: -2 },

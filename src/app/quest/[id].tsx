@@ -35,7 +35,7 @@ export default function QuestScreen() {
         <View style={styles.missing}>
           <Text variant="title">This quest has wandered off</Text>
           <Text variant="callout">It may have been cleared from this phone.</Text>
-          <PillButton label="Back to Folders" sound={null} onPress={() => router.replace('/folders')} />
+          <PillButton label="Back to Library" sound={null} onPress={() => router.replace('/folders')} />
         </View>
       </Paper>
     );

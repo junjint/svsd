@@ -373,6 +373,8 @@ export interface V2Preferences extends DrawSettings {
   alwaysSkipReveals: boolean;
   profileVisibility: 'public' | 'private';
   displayName?: string;
+  /** a private, location-free copy of the photo they picked */
+  avatarUri?: string;
   onboarded: boolean;
 }
 

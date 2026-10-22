@@ -26,22 +26,18 @@ export function QuestTypeChips() {
 
   return (
     <Animated.View layout={LinearTransition.springify().damping(SPRING.damping).stiffness(SPRING.stiffness)} style={{ gap: space.md }}>
-      {/* two deliberate rows: the four types share one, Random gets its own wide chip */}
-      <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel="Quest type">
+      {/* nothing picked = Random: tap a type to narrow it, tap it again to let go */}
+      <View style={styles.grid} accessibilityLabel="Quest type, optional">
         <View style={styles.row}>
           {TYPES.map((t) => (
-            <Chip key={t} grow label={QUEST_TYPE_LABELS[t]} selected={questType === t} onPress={() => questType !== t && pick({ questType: t })} />
-          ))}
-        </View>
-        <View style={styles.randomRow}>
-          <View style={styles.random}>
             <Chip
-              label={`✦ ${QUEST_TYPE_LABELS.random}`}
-              a11yLabel={QUEST_TYPE_LABELS.random}
-              selected={questType === 'random'}
-              onPress={() => questType !== 'random' && pick({ questType: 'random' })}
+              key={t}
+              grow
+              label={QUEST_TYPE_LABELS[t]}
+              selected={questType === t}
+              onPress={() => pick({ questType: questType === t ? 'random' : t })}
             />
-          </View>
+          ))}
         </View>
       </View>
 
@@ -49,7 +45,7 @@ export function QuestTypeChips() {
         <Animated.View entering={FadeInDown.springify().damping(SPRING.damping)} exiting={FadeOutUp.duration(160)}>
           <View style={styles.subRow} accessibilityRole="radiogroup" accessibilityLabel="Focus setting">
             {FOCUS.map((f) => (
-              <Chip key={f.id} size="sm" label={f.label} selected={focus === f.id} onPress={() => focus !== f.id && pick({ focus: f.id })} />
+              <Chip key={f.id} role="radio" size="sm" label={f.label} selected={focus === f.id} onPress={() => focus !== f.id && pick({ focus: f.id })} />
             ))}
           </View>
         </Animated.View>
@@ -61,7 +57,5 @@ export function QuestTypeChips() {
 const styles = StyleSheet.create({
   grid: { paddingHorizontal: 20, gap: space.sm },
   row: { flexDirection: 'row', gap: space.sm },
-  randomRow: { alignItems: 'center' },
-  random: { minWidth: 168 },
   subRow: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
 });

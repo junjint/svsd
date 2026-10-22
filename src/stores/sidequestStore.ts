@@ -52,6 +52,8 @@ export interface DrawSession {
 export interface UserLocation {
   coords: Coordinates;
   cityLabel: string;
+  /** ISO country code, for the flag beside the city */
+  country?: string;
   isDemo: boolean;
   demoCity?: DemoCityKey;
 }
@@ -86,7 +88,8 @@ interface SidequestState {
   rerollActivity: () => boolean;
   toggleLockPlace: () => void;
   canReroll: (stage: 'place' | 'activity') => boolean;
-  go: () => Promise<DrawnSidequest | null>;
+  /** accept the drawn sidequest. `keepDraw` leaves the receipt up, so a screen can leave first and clear it after */
+  go: (opts?: { keepDraw?: boolean }) => Promise<DrawnSidequest | null>;
   saveForLater: () => Promise<DrawnSidequest | null>;
   discardDraw: () => void;
 
@@ -112,6 +115,7 @@ const DEMO = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
 const defaultLocation = (key: DemoCityKey = 'ann_arbor'): UserLocation => ({
   coords: DEMO_CITIES[key].center,
   cityLabel: DEMO_CITIES[key].label,
+  country: DEMO_CITIES[key].country,
   isDemo: true,
   demoCity: key,
 });
@@ -227,13 +231,15 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       if (pos) {
         const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         let cityLabel = 'Nearby';
+        let country: string | undefined;
         try {
           const [geo] = await Location.reverseGeocodeAsync(coords);
           cityLabel = geo?.city ?? geo?.subregion ?? geo?.region ?? cityLabel;
+          country = geo?.isoCountryCode ?? undefined;
         } catch {
           /* offline: keep the generic label */
         }
-        next = { coords, cityLabel, isDemo: false };
+        next = { coords, cityLabel, country, isDemo: false };
       }
       const { prefs } = get();
       const moved = prefs.onboarded && prefs.confirmedCity && prefs.confirmedCity !== next.cityLabel;
@@ -350,11 +356,11 @@ export const useSidequestStore = create<SidequestState>((set, get) => {
       if (d) patchDraw({ placeLocked: !d.placeLocked });
     },
 
-    go: async () => {
+    go: async ({ keepDraw = false } = {}) => {
       const quest = buildFromDraw(get());
       if (!quest) return null;
       const accepted = forceStatus(quest, 'accepted') as DrawnSidequest;
-      set({ quests: [accepted, ...get().quests], draw: null });
+      set({ quests: [accepted, ...get().quests], ...(keepDraw ? {} : { draw: null }) });
       await persist();
       return accepted;
     },

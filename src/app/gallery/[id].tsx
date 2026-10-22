@@ -76,7 +76,7 @@ export default function GalleryScreen() {
       <Paper edges={['top', 'bottom']}>
         <View style={styles.missing}>
           <Text variant="title">This folder is gone</Text>
-          <PillButton label="Back to Folders" sound={null} onPress={() => router.replace('/folders')} />
+          <PillButton label="Back to Library" sound={null} onPress={() => router.replace('/folders')} />
         </View>
       </Paper>
     );

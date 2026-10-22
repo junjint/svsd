@@ -1,10 +1,10 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { LiquidToggle, RollingCounter } from '@/ui';
-import { Text, color, space } from '@/theme';
-import { SPRING } from '../motion';
+import { color, fonts, space } from '@/theme';
+import { OPEN_EASE } from '@/ui/motion';
 
 const MIN_GROUP = 2;
 const MAX_GROUP = 8;
@@ -27,26 +27,35 @@ export function PartyControl() {
     void updatePrefs({ partySize: next });
   };
 
+  /* one value drives everything, on the toggle's own easing: the labels
+     trade ink and the stepper fades and slides in. The stepper's slot is
+     always there, so nothing in the row ever moves sideways. */
+  const still = useReducedMotion();
+  const t = useSharedValue(together ? 1 : 0);
+  useEffect(() => {
+    t.value = still ? (together ? 1 : 0) : withTiming(together ? 1 : 0, { ...OPEN_EASE, duration: 420 });
+  }, [together, still, t]);
+  const soloInk = useAnimatedStyle(() => ({ color: interpolateColor(t.value, [0, 1], [color.ink, color.ink3]) }));
+  const groupInk = useAnimatedStyle(() => ({ color: interpolateColor(t.value, [0, 1], [color.ink3, color.ink]) }));
+  const stepperIn = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ translateX: (1 - t.value) * -10 }, { scale: 0.92 + 0.08 * t.value }] }));
+
   return (
-    <Animated.View layout={LinearTransition.springify().damping(SPRING.damping).stiffness(SPRING.stiffness)} style={styles.row}>
+    <View style={styles.row}>
       <View style={styles.toggle}>
-        <Text style={[styles.label, !together && styles.on]}>Solo</Text>
+        <Animated.Text style={[styles.label, soloInk]}>Solo</Animated.Text>
         <LiquidToggle value={together} onChange={setTogether} label={together ? 'With others' : 'Solo'} />
-        <Text style={[styles.label, together && styles.on]}>With others</Text>
+        <Animated.Text style={[styles.label, groupInk]}>With others</Animated.Text>
       </View>
-      {together && (
-        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} style={styles.stepper}>
-          <RollingCounter value={partySize} min={MIN_GROUP} max={MAX_GROUP} onChange={step} size="sm" />
-        </Animated.View>
-      )}
-    </Animated.View>
+      <Animated.View style={[styles.stepper, stepperIn]} pointerEvents={together ? 'auto' : 'none'} accessibilityElementsHidden={!together}>
+        <RollingCounter value={Math.max(MIN_GROUP, partySize)} min={MIN_GROUP} max={MAX_GROUP} onChange={step} size="sm" />
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.lg, minHeight: 44 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, minHeight: 44 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  label: { fontSize: 15, fontWeight: '500', color: color.ink3 },
-  on: { color: color.ink },
+  label: { fontFamily: fonts.sansMedium, fontSize: 15 },
   stepper: { paddingLeft: space.sm, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: color.line },
 });

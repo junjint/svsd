@@ -21,21 +21,26 @@ export function ReceiptActions({
   onReprint: (stage: 'place' | 'activity') => void;
 }) {
   const go = useSidequestStore((s) => s.go);
-  const completeQuest = useSidequestStore((s) => s.completeQuest);
+  const createFolder = useSidequestStore((s) => s.createFolder);
+  const discardDraw = useSidequestStore((s) => s.discardDraw);
   const leaving = useRef(false);
 
   const out = draw.rerolls.activity >= REROLLS_PER_STAGE && (draw.placeLocked || draw.rerolls.place >= REROLLS_PER_STAGE);
 
-  // the demo skips the in-progress step: sliding files the sidequest
-  // straight into its folder and opens its page
   const confirmGo = async () => {
     if (leaving.current) return false;
     leaving.current = true;
-    const q = await go();
-    const folder = q ? await completeQuest(q.id) : null;
+    // going starts the sidequest and files it straight into a new folder (finished
+    // later by holding the button on its page). The receipt stays on the printer
+    // while the page arrives: clearing it first flashed the home screen resetting
+    const q = await go({ keepDraw: true });
+    const folder = q ? await createFolder({ title: q.activityText, sidequestId: q.id }) : null;
     leaving.current = false;
-    if (!folder) return false;
-    feedback('questCompleted');
+    if (!folder) {
+      discardDraw();
+      return false;
+    }
+    setTimeout(discardDraw, 700);
     router.push({ pathname: '/folder/[id]', params: { id: folder.id } });
   };
 

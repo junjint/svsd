@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { feedback } from '@/services/sound';
-import { PillButton, Text, color, radius, space } from '@/theme';
+import { PillButton, Text, color, fonts, radius, space } from '@/theme';
 import type { Mood, QuestFolder } from '@/types';
 import { Sheet } from '@/ui';
 
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.line,
     paddingHorizontal: space.lg,
+    fontFamily: fonts.sans,
     fontSize: 16,
     color: color.ink,
   },

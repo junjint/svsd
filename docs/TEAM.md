@@ -24,7 +24,7 @@ You edit **only** the files your area owns. If you need something changed in a s
 **Theme: `@/theme`**
 - Components: `Paper`, `Frost`, `FeatherImage`, `Text` (variants: `wordmark`, `display`, `title`, `headline`, `body`, `callout`, `caption`, `number`, `label`, `accent`, `prose`), `PillButton`, `GlassIconButton`, `CountPill`, `Logo`, `Decor`, `Glass` (Apple Liquid Glass: native on iOS 26 via expo-glass-effect, hand-built elsewhere; `clear` for controls, `ink` for the main action), `TornPaper` (every card: receipt paper with ripped top and bottom edges), `Barcode`, `DashRule`, `receiptInk`.
 - Tokens: `color`, `radius`, `space`, `shadow`, `spring`, `rarityColor`, `FEATHER`.
-- Inter is the interface face and EB Garamond is the sidequest's voice, with Garamond italic for accents. Use `Text` from `@/theme`, never React Native's `Text`, so the right font file is picked. The UI stays neutral: no colour accents (see SPEC §2.2).
+- Plus Jakarta Sans is the interface face (use the `fonts.sans*` tokens) and EB Garamond is the sidequest's voice, with Garamond italic for accents. Use `Text` from `@/theme`, never React Native's `Text`, so the right font file is picked. The UI stays neutral: no colour accents (see SPEC §2.2).
 
 **Store: `useSidequestStore` in `@/stores/sidequestStore`**
 - State: `prefs`, `location`, `cityPrompt`, `quests`, `folders`, `badges`, `badgeQueue`, `draw`.

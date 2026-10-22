@@ -14,7 +14,6 @@ import Animated, {
 import { Text, color, shadow, space, spring } from '@/theme';
 import type { QuestFolder, QuestType } from '@/types';
 import { Photo } from './Photo';
-import { Plus } from './icons';
 import { feedback } from '@/services/sound';
 
 /* ══ Folder tile — native port of Bencho `folder` ══════════════
@@ -193,26 +192,6 @@ function FolderFront({ S, p, tint }: { S: number; p: SharedValue<number>; tint: 
   );
 }
 
-/** "+ New folder", sized like a folder tile */
-export function NewFolderTile({ size, onPress }: { size: number; onPress: () => void }) {
-  return (
-    <View style={{ width: size, alignItems: 'center' }}>
-      <Pressable accessibilityRole="button" accessibilityLabel="New folder" onPress={onPress}>
-        {({ pressed }) => (
-          <View style={[styles.newTile, { width: size * 0.88, height: size * 0.6, marginTop: size * 0.12, marginBottom: size * 0.06, transform: [{ scale: pressed ? 0.97 : 1 }] }]}>
-            <View style={[styles.plusDisc, shadow.lift]}>
-              <Plus size={18} tint={color.cobalt} />
-            </View>
-          </View>
-        )}
-      </Pressable>
-      <Text variant="headline" style={styles.title}>New folder</Text>
-      <View style={styles.countPill}>
-        <Text style={styles.countText}>Name it, fill it</Text>
-      </View>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   back: { position: 'absolute', borderTopLeftRadius: 6, borderTopRightRadius: 16, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
@@ -230,13 +209,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, textAlign: 'center', marginTop: space.sm },
   countPill: { marginTop: 6, paddingHorizontal: 10, height: 24, borderRadius: 12, backgroundColor: color.mist, justifyContent: 'center' },
   countText: { fontSize: 12, fontWeight: '500', color: color.ink2, fontVariant: ['tabular-nums'] },
-  newTile: {
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: color.ink3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusDisc: { width: 52, height: 52, borderRadius: 26, backgroundColor: color.white, alignItems: 'center', justifyContent: 'center' },
 });

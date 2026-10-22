@@ -128,13 +128,14 @@ function StatusBarMock() {
 }
 
 const styles = StyleSheet.create({
-  bare: { flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', backgroundColor: color.paper, overflow: 'hidden' },
+  bare: { flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', backgroundColor: color.paper, overflow: 'clip' } as object,
   page: { flex: 1, backgroundColor: '#E8E6E2', alignItems: 'center', justifyContent: 'center' },
   device: {
     width: DEVICE.width,
     height: DEVICE.height,
     borderRadius: 54,
-    overflow: 'hidden',
+    // clip, not hidden: a hidden box can still be scrolled by focus or scrollIntoView, which shoved the whole screen up
+    overflow: 'clip',
     backgroundColor: color.paper,
     borderWidth: BEZEL,
     borderColor: '#111',

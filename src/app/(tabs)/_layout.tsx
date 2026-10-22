@@ -13,9 +13,9 @@ export default function TabsLayout() {
         tabBar={(props) => <TabBar {...props} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: color.paper } }}
       >
-        <Tabs.Screen name="draw" options={{ title: 'Draw' }} />
-        <Tabs.Screen name="folders" options={{ title: 'Folders' }} />
-        <Tabs.Screen name="wall" options={{ title: 'Wall' }} />
+        {/* Library | + | Profile: the Draw is the round button in the middle */}
+        <Tabs.Screen name="folders" options={{ title: 'Library' }} />
+        <Tabs.Screen name="draw" options={{ title: 'New sidequest' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
       </Tabs>
       <CitySheetHost />

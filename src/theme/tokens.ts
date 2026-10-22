@@ -39,19 +39,20 @@ export const radius = {
 /** 4pt scale */
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
 
-/** Inter for the interface, EB Garamond for the sidequest's own voice */
+/** Plus Jakarta Sans for the interface, EB Garamond for the sidequest's own voice */
 export const fonts = {
   serif: 'EBGaramond_400Regular',
   serifItalic: 'EBGaramond_400Regular_Italic',
-  sans: 'Inter_400Regular',
-  sansMedium: 'Inter_500Medium',
-  sansSemi: 'Inter_600SemiBold',
-  sansBold: 'Inter_700Bold',
+  sans: 'PlusJakartaSans_400Regular',
+  sansMedium: 'PlusJakartaSans_500Medium',
+  sansSemi: 'PlusJakartaSans_600SemiBold',
+  sansBold: 'PlusJakartaSans_700Bold',
+  sansHeavy: 'PlusJakartaSans_800ExtraBold',
   /** thermal-receipt type */
   mono: 'SpaceMono_400Regular',
   monoBold: 'SpaceMono_700Bold',
   /** kept for callers that ask for the UI face */
-  ui: 'Inter_400Regular' as string | undefined,
+  ui: 'PlusJakartaSans_400Regular' as string | undefined,
 } as const;
 
 export const type = {
