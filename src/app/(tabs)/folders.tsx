@@ -52,16 +52,17 @@ export default function FoldersScreen() {
   const [landing, setLanding] = useState<string | null>(null);
   useEffect(() => {
     if (!just) return;
-    setLanding(just);
-    setFilter('all');
-    setOpenId(null);
-    scroll.current?.scrollTo({ y: 0, animated: false });
-    router.setParams({ just: '' }); // played once; a reload shouldn't replay it
     const t = [
+      setTimeout(() => {
+        setLanding(just);
+        setFilter('all');
+        setOpenId(null);
+        scroll.current?.scrollTo({ y: 0, animated: false });
+      }, 0),
       setTimeout(() => feedback('questCompleted'), 420),
       setTimeout(() => setOpenId(just), 700),
       setTimeout(() => setOpenId((o) => (o === just ? null : o)), 1700),
-      setTimeout(() => setLanding(null), 2200),
+      setTimeout(() => { setLanding(null); router.setParams({ just: '' }); }, 2200),
     ];
     return () => t.forEach(clearTimeout);
   }, [just]);
@@ -183,7 +184,6 @@ export default function FoldersScreen() {
 
             <View style={styles.grid}>
               {shown.map((f, i) => {
-                const q = f.sidequestId ? byId.get(f.sidequestId) : undefined;
                 return (
                   <Animated.View
                     key={f.id === landing ? `${f.id}-landing` : f.id}

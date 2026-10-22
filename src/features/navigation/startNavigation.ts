@@ -1,4 +1,4 @@
-import { showToast } from '@/ui';
+import { router } from 'expo-router';
 import type { Coordinates } from '@/types';
 
 export interface NavigationTarget {
@@ -7,14 +7,7 @@ export interface NavigationTarget {
   coordinates: Coordinates;
 }
 
-/**
- * The entryway to in-app navigation (the Google Maps flow).
- *
- * MERGE POINT: the navigation flow is prototyped separately. When it
- * lands, replace this body with its entry (e.g. a router.push to its
- * screen, passing `target`). Every "Get directions" button calls this
- * one function, so nothing else needs to change.
- */
+/** Open the browser walking demo for an existing Sidequest. No external map handoff. */
 export function startNavigation(target: NavigationTarget) {
-  showToast('Directions are coming soon');
+  router.push({ pathname: '/walk', params: { quest: target.sidequestId } });
 }

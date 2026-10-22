@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { feedback } from '@/services/sound';
-import { HoverContext, Glass, color, fonts, hoverOf } from '@/theme';
-import { Text } from '@/theme';
+import { HoverContext, Glass, Text, color, fonts, hoverOf } from '@/theme';
 
 const HOLD_MS = 1400;
 const TICK_MS = 230;
@@ -30,6 +29,11 @@ export function HoldToComplete({ label = 'Hold to finish sidequest', onComplete 
   const press = useSharedValue(1);
   const [done, setDone] = useState(false);
   const ticks = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finished = useRef(false);
+  useEffect(() => () => {
+    if (ticks.current) clearInterval(ticks.current);
+    cancelAnimation(fill);
+  }, [fill]);
 
   const stopTicks = () => {
     if (ticks.current) clearInterval(ticks.current);
@@ -37,6 +41,9 @@ export function HoldToComplete({ label = 'Hold to finish sidequest', onComplete 
   };
 
   const finish = () => {
+    if (finished.current) return;
+    finished.current = true;
+    cancelAnimation(fill);
     stopTicks();
     setDone(true);
     feedback('questCompleted');
@@ -49,9 +56,9 @@ export function HoldToComplete({ label = 'Hold to finish sidequest', onComplete 
     press.value = withSpring(0.98, { stiffness: 400, damping: 30 });
     stopTicks();
     ticks.current = setInterval(() => feedback('scratchTick'), TICK_MS);
-    fill.value = withTiming(1, { duration: HOLD_MS * (1 - fill.value), easing: Easing.linear }, (ok) => {
+    fill.set(withTiming(1, { duration: HOLD_MS * (1 - fill.get()), easing: Easing.linear }, (ok) => {
       if (ok) runOnJS(finish)();
-    });
+    }));
   };
 
   const release = () => {
@@ -59,7 +66,7 @@ export function HoldToComplete({ label = 'Hold to finish sidequest', onComplete 
     if (done) return;
     stopTicks();
     cancelAnimation(fill);
-    fill.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
+    fill.set(withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }));
   };
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
@@ -84,6 +91,7 @@ export function HoldToComplete({ label = 'Hold to finish sidequest', onComplete 
       accessibilityHint="Press and hold to mark this sidequest complete"
       accessibilityActions={[{ name: 'activate' }]}
       onAccessibilityAction={finish}
+      onPress={(event) => { if ((event.nativeEvent as { detail?: number }).detail === 0) finish(); }}
       onPressIn={begin}
       onPressOut={release}
       delayLongPress={HOLD_MS + 1000}

@@ -33,6 +33,7 @@ export default function RootLayout() {
               <Stack.Screen name="folder/[id]" />
               <Stack.Screen name="gallery/[id]" />
               <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="walk" />
             </Stack>
           )}
           {hydrated && <ToastHost />}

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -15,6 +15,10 @@ export default function SettingsScreen() {
   const clearAll = useSidequestStore((s) => s.clearAll);
   const [confirmClear, setConfirmClear] = useState(false);
   const [radius, setRadius] = useState(prefs.radiusMiles);
+  useEffect(() => {
+    const timer = setTimeout(() => setRadius(prefs.radiusMiles), 0);
+    return () => clearTimeout(timer);
+  }, [prefs.radiusMiles]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 

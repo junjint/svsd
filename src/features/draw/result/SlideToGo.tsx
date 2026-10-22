@@ -80,8 +80,8 @@ export function SlideToGo({
   };
 
   const reset = useCallback(() => {
-    done.value = 0;
-    anchor.value = withSpring(0, { stiffness: 380, damping: 34, mass: 0.9 });
+    done.set(0);
+    anchor.set(withSpring(0, { stiffness: 380, damping: 34, mass: 0.9 }));
   }, [anchor, done]);
 
   const confirmed = useCallback(async () => {
@@ -93,8 +93,8 @@ export function SlideToGo({
 
   const commit = () => {
     'worklet';
-    done.value = 1;
-    anchor.value = x.value;
+    done.set(1);
+    anchor.set(x.get());
     x.value = withSpring(0, COMMIT);
     /* a 2.6% dip a beat behind the unfurl, peaking late (0.62 of 420ms),
        so the block gathers as it lands */
@@ -149,6 +149,16 @@ export function SlideToGo({
     transform: [{ scale: withTiming(done.value ? 1 : 0.7, { duration: 160, easing: SETTLE_EASE }) }],
   }));
 
+  const activate = () => {
+    if (done.get()) return;
+    // Keyboard/VoiceOver cannot slide; use the same intentional confirmation.
+    done.set(1);
+    anchor.set(travel);
+    x.set(travel);
+    x.set(withSpring(0, COMMIT));
+    void confirmed();
+  };
+
   return (
     <GestureDetector gesture={pan}>
       <Animated.View
@@ -157,14 +167,13 @@ export function SlideToGo({
         accessibilityLabel={label}
         accessibilityHint="Starts this sidequest. Double-tap to confirm."
         accessibilityActions={[{ name: 'activate' }]}
-        onAccessibilityAction={() => {
-          if (done.value) return;
-          // VoiceOver can't slide: commit straight from the end of the track
-          done.value = 1;
-          anchor.value = travel;
-          x.value = travel;
-          x.value = withSpring(0, COMMIT);
-          void confirmed();
+        onAccessibilityAction={activate}
+        onKeyDown={(event) => {
+          if (Platform.OS !== 'web') return;
+          const { key, repeat } = event.nativeEvent;
+          if (key !== 'Enter' && key !== ' ') return;
+          event.preventDefault();
+          if (!repeat) activate();
         }}
         onPointerDown={measure}
         onPointerEnter={() => hoverTo(true)}

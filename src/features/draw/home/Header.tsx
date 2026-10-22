@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { CountPill, Logo } from '@/theme';
+import { CountPill, GlassIconButton, Logo, Text } from '@/theme';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { PressScale } from '../PressScale';
 
@@ -16,7 +16,9 @@ export function Header({ minimal = false }: { minimal?: boolean }) {
   return (
     <View style={styles.row}>
       {/* Profile lives in the tab bar only; this keeps the logo centred */}
-      <View style={styles.side} />
+      <View style={styles.side}>
+        {!minimal && <GlassIconButton label="Try iOS walking demo" onPress={() => router.push('/walk')} size={40}><Text style={{ fontSize: 20 }}>↗</Text></GlassIconButton>}
+      </View>
 
       <Logo />
 

@@ -8,7 +8,7 @@ import { partyLabel } from '@/features/folders/format';
 import { Chevron } from '@/features/folders/icons';
 import { QuestHero } from '@/features/quest/QuestHero';
 import { formatMiles, travelLabel } from '@/services/draw/rules';
-import { openWalkingDirections } from '@/services/navigation/maps';
+import { startNavigation } from '@/features/navigation/startNavigation';
 import { feedback } from '@/services/sound';
 import { useSidequestStore } from '@/stores/sidequestStore';
 import { GlassIconButton, Paper, PillButton, Text, TornPaper, color, fonts, radius, rarityColor, receiptInk, space } from '@/theme';
@@ -112,7 +112,7 @@ export default function QuestScreen() {
             label="Directions"
             accessibilityLabel={`Open walking directions to ${quest.placeName}`}
             style={{ flex: 1 }}
-            onPress={() => void openWalkingDirections(quest.coordinates, quest.placeName)}
+            onPress={() => startNavigation({ sidequestId: quest.id, placeName: quest.placeName, coordinates: quest.coordinates })}
           />
           {!isSaved && (
             <SoftButton
