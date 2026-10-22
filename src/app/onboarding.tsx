@@ -1,6 +1,4 @@
-import { OnboardingFlow } from '@/features/onboarding';
-
-/* SPEC §4.6 — what a sidequest is → location + radius → favourite type */
+import { Redirect } from "expo-router";
 export default function Onboarding() {
-  return <OnboardingFlow />;
+  return <Redirect href="/" />;
 }

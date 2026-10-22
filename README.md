@@ -1,167 +1,43 @@
 # Sidequest
 
-**Life's better with sidequests.**
+**A little off your usual way.**
 
-Sidequest is a mobile-first Expo app that discovers interesting places near you and occasionally invites spontaneous, walkable detours — framed as miniature adventures with a personal journal.
+A complete browser-local Sidequest concept app, inside the existing realistic iPhone. Walk, receive a notification, discover a detour, and return to your original destination with a memory worth keeping.
 
-**v2 build spec (gacha draw, folders, trophies, wall, Bencho UI + sounds): [`docs/SPEC.md`](docs/SPEC.md)**
+Leaflet provides interactive OpenStreetMap tiles with a local vector fallback. Quest places, walking, approximate route estimates, iOS permissions, notification banners and Live Activities are simulated. No account or API key is required. This is not an Apple Maps extension or native ActivityKit implementation.
 
-This repository contains the **functional infrastructure** (routing, discovery, recommendations, location, notifications, quest lifecycle, journal, demo mode) plus a minimal **editorial design system**.
+## Preview
 
-### Design system
-
-BeReal-level chrome restraint: black/white UI only. Color arrives exclusively through picture stickers that lead, trail, or sit between type.
-
-- Tokens & components: `src/design/`
-- Spec: [`src/design/DESIGN.md`](src/design/DESIGN.md)
-- Type: Schibsted Grotesk (poster neo-grotesque, giant display) · white + grain · stickers only for color
-- Poster refs: `assets/design/ref-festival-bandeiras.jpg`, `ref-poster-brush.jpg`, `ref-a2-noir.png`
-
-## Quick start
-
-```bash
-cp .env.example .env
+```sh
 npm install
-npm start
+npm run web
 ```
 
-Press `i` for iOS simulator, `a` for Android emulator, or scan the QR code.
+Or build and serve a production preview:
 
-### Web prototype (browser)
-
-```bash
+```sh
 npm run prototype
-# → http://localhost:8080
 ```
 
-Or, if `dist/` already exists from a prior export:
+The recovered development session uses `BROWSER=none npm run web -- --port 49870` at **http://localhost:49870/**. To serve an existing export, use `npm run prototype:serve`.
 
-```bash
-npm run prototype:serve
+## Walk through it
+
+Complete onboarding, enabling the demo location and simulated banners for the full guided walk. A notification appears after five walking ticks. Tap it for a photo-first sheet, then accept, skip or save. Acceptance redraws the route and starts a separate Dynamic Island activity. Tap the island to revisit the quest; hold, right-click or Arrow Down to expand its controls. Arrival follows about 34 Guided detour ticks. Keep an optional note or local photo, complete the discovery, and resume the original walk.
+
+Explore mode includes map pan/zoom, destination selection, four seeded quests, route overview, cancellation, manual discovery, saved places and editable memories. All preference controls affect behavior. Quiet mode suppresses automatic suggestions; notification-off hides banners but leaves the map opportunity available. Replay is in Preferences. Three bottom tabs, sheet close/drag gestures and Escape provide navigation. Motion respects reduced-motion preferences.
+
+Preferences, bookmarks, notes and locally compressed photos persist in this browser. Active simulated journeys deliberately reset on reload. Photos never leave the browser. The original logo, paper palette and EB Garamond remain; the active interface now uses Plus Jakarta Sans. The Library / + / Profile bar includes an invitation printer, numbered keepsake receipts, and a persistent “Your walk” map shortcut. See [the app guide](docs/FULL-APP.md), [Apple integration status](docs/APPLE-INTEGRATION.md), and [image provenance](assets/prototype/README.md).
+
+## Checks
+
+```sh
+npm run typecheck
+npm run lint:prototype
+npm test -- --runInBand
+npx expo export --platform web
 ```
 
-Demo path in the UI: complete onboarding → **Developer / Demo tools** → simulate walk → accept → arrive → journal.
+The active app lives in `src/features/prototype/app/`. The earlier cinematic implementation, reducer, illustration and [guide](docs/LEGACY-CINEMATIC.md) remain preserved. Historical mobile modules and [the previous spec](docs/SPEC.md) stay disconnected. Full-repository lint includes those legacy modules (61 existing errors, 17 warnings); focused lint checks reachable app code. Native builds retain the browser-preview message; this concept targets web.
 
-### Native development builds
-
-Background location, geofencing, and some notification behaviors require a **development build** (not Expo Go alone for all features):
-
-```bash
-# iOS (macOS + Xcode)
-npx expo run:ios
-
-# Android (Android Studio / emulator or device)
-npx expo run:android
-```
-
-Or with EAS:
-
-```bash
-npx eas-cli@latest build --profile development --platform ios
-npx eas-cli@latest build --profile development --platform android
-```
-
-Configure secrets via `.env` (see `.env.example`). Never put Google Places or Supabase **service-role** keys in the mobile client.
-
-## Simulated demo (no API keys / no walking)
-
-1. Launch the app and complete onboarding (or skip location).
-2. Open **Developer / Demo tools** from Home or Settings.
-3. Reset location to **downtown Ann Arbor**.
-4. Set interests to coffee / art / bookstores.
-5. Enable exploration.
-6. Tap **Simulate walking into a new area + notify**.
-7. Open the suggested sidequest → Accept → Open directions.
-8. Tap **Simulate arrival** → **Complete & write journal chapter**.
-9. Confirm the chapter appears under **Journal**.
-
-Demo places are labeled `[DEMO]` / `[CURATED DEMO]`. The same lifecycle powers real-world mode.
-
-## Architecture overview
-
-```
-src/
-  app/                  Expo Router screens (onboarding, tabs, quest, demo)
-  components/           Functional placeholder UI
-  constants/            Narrative hooks & notification copy
-  data/                 Ann Arbor demo places
-  services/
-    discovery/          Orchestrates search → score → notify
-    journal/            Chapter creation & stats
-    location/           Permissions, foreground/background monitoring, geofences
-    navigation/         External Apple/Google Maps deep links
-    notifications/      Local notifications + log
-    places/             Mock / Curated / Google providers + facade
-    recommendation/     Weighted scoring, cooldowns, quiet hours
-    persistence/        AsyncStorage
-    sidequest/          Status state machine
-    supabase/           Optional client (disabled without env)
-  stores/               Zustand app state
-  types/                Shared domain models
-supabase/migrations/    Optional Postgres schema
-backend/                Example Places proxy (server-side key)
-```
-
-### Place providers
-
-`PlaceProvider.searchNearby(location, radius, categories, filters)`
-
-| Provider | Role |
-| --- | --- |
-| `MockPlaceProvider` | Full demo dataset around downtown Ann Arbor |
-| `CuratedPlaceProvider` | Pop-ups / unusual spaces with event windows |
-| `GooglePlacesProvider` | Places API (New) via `EXPO_PUBLIC_PLACES_BACKEND_URL` |
-
-Set `EXPO_PUBLIC_PLACE_PROVIDER` to `mock` (default), `google`, `curated`, or `composite`.
-
-### Recommendation engine
-
-Weighted scoring: interest, proximity, novelty, context (hours/budget/travel mode), surprise, story potential — then weighted random among top candidates. Feedback (accept/dismiss/save/complete) is stored for future tuning.
-
-### Discovery & notifications
-
-- Opt-in foreground location first; background only after explicit enable.
-- Energy-aware updates + geofencing when permitted; OS may defer delivery.
-- Defaults: ≤2 unsolicited notifications/day, 3h cooldown, quiet hours 10pm–8am, 7-day duplicate suppression.
-- Foreground-only fallback when background is denied.
-- Exploration toggle immediately stops monitoring.
-
-## Scripts
-
-```bash
-npm start          # Expo dev server
-npm run ios        # Native iOS build/run
-npm run android    # Native Android build/run
-npm test           # Recommendation, cooldown, lifecycle tests
-npm run typecheck  # TypeScript
-```
-
-## Database
-
-Apply `supabase/migrations/001_sidequest_schema.sql` when enabling Supabase. Tables: `users`, `user_preferences`, `places`, `sidequests`, `user_sidequests`, `story_chapters`, `recommendation_feedback`, `notification_preferences`.
-
-The app runs fully offline with AsyncStorage until Supabase env vars are set.
-
-## What needs a real device / credentials / more production work
-
-| Capability | Requirement |
-| --- | --- |
-| Accurate GPS + arrival detection | Physical device, foreground location permission |
-| Background discovery / geofencing | Dev build + background location permission; OS-limited reliability |
-| Local notification delivery | Notification permission; background delivery varies by OS |
-| Live Google Places results | Backend with `GOOGLE_PLACES_API_KEY` + `EXPO_PUBLIC_PLACES_BACKEND_URL` |
-| Synced accounts / cloud journal | Supabase URL + anon key; auth + RLS policies |
-| Photo sync | Storage bucket + privacy review |
-| Production maps SDK keys | Platform-specific Maps API keys if required by store builds |
-| Design system / branding | Intentionally deferred |
-
-## Privacy notes
-
-- No silent tracking before permission.
-- No unnecessary precise movement history.
-- Journal chapters are private by default.
-- Clear personal data from Settings.
-
-## License
-
-See `LICENSE`.
+See [LICENSE](LICENSE).
